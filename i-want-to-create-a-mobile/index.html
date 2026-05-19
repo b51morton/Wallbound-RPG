@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Wallbound Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="top-bar" aria-label="Battle status">
+        <div>
+          <span class="label">Battle</span>
+          <strong id="battleText">1</strong>
+        </div>
+        <div>
+          <span class="label">Loot</span>
+          <strong id="lootText">0</strong>
+        </div>
+        <div>
+          <span class="label">Wall</span>
+          <strong id="wallText">30</strong>
+        </div>
+      </header>
+
+      <section class="play-area" aria-label="Wall defence board">
+        <canvas id="gameCanvas" width="390" height="620"></canvas>
+      </section>
+
+      <section class="controls" aria-label="Party training controls">
+        <div class="hero-row" id="heroButtons">
+          <button class="hero-card party-member fire" type="button" data-hero="fire">
+            <span class="hero-mark"></span>
+            <span>
+              <strong>Fire <b id="fireLevel">1</b></strong>
+              <small>Party Member</small>
+              <small id="fireCost">Train 3</small>
+            </span>
+          </button>
+          <button class="hero-card party-member ice" type="button" data-hero="ice">
+            <span class="hero-mark"></span>
+            <span>
+              <strong>Ice <b id="iceLevel">1</b></strong>
+              <small>Party Member</small>
+              <small id="iceCost">Train 3</small>
+            </span>
+          </button>
+          <button class="hero-card party-member lightning storm" type="button" data-hero="lightning">
+            <span class="hero-mark"></span>
+            <span>
+              <strong>Storm <b id="lightningLevel">1</b></strong>
+              <small>Party Member</small>
+              <small id="lightningCost">Train 3</small>
+            </span>
+          </button>
+          <button class="hero-card party-member poison" type="button" data-hero="poison">
+            <span class="hero-mark"></span>
+            <span>
+              <strong>Poison <b id="poisonLevel">1</b></strong>
+              <small>Party Member</small>
+              <small id="poisonCost">Train 3</small>
+            </span>
+          </button>
+          <button class="hero-card party-member earth" type="button" data-hero="earth">
+            <span class="hero-mark"></span>
+            <span>
+              <strong>Earth <b id="earthLevel">1</b></strong>
+              <small>Party Member</small>
+              <small id="earthCost">Train 3</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="wall-row" id="wallButtons">
+          <button class="wall-card fortify" type="button" data-wall-upgrade="fortify">
+            <span class="wall-mark"></span>
+            <span>
+              <strong>Fortify <b id="fortifyLevel">0</b></strong>
+              <small id="fortifyCost">Build 4</small>
+            </span>
+          </button>
+          <button class="wall-card spikes" type="button" data-wall-upgrade="spikes">
+            <span class="wall-mark"></span>
+            <span>
+              <strong>Spikes <b id="spikesLevel">0</b></strong>
+              <small id="spikesCost">Build 4</small>
+            </span>
+          </button>
+        </div>
+
+        <button id="battleButton" class="primary" type="button">Start Battle</button>
+      </section>
+    </main>
+
+    <div id="upgradePanel" class="upgrade-panel hidden" role="dialog" aria-modal="true" aria-label="Choose an upgrade">
+      <div class="upgrade-box">
+        <h1 id="upgradeTitle">Choose an upgrade</h1>
+        <div id="upgradeChoices" class="upgrade-choices"></div>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
