@@ -16,12 +16,14 @@ export function drawGame(renderCtx, renderState, renderHeroConfig, now, helpers 
   const height = state.height;
   ctx.clearRect(0, 0, width, height);
   drawArena(width, height);
+  drawReachBands();
   drawWall(width);
   drawHeroes();
   drawEnemies(now);
   drawProjectiles();
   drawBeams();
   drawHits();
+  drawFloaters();
 }
 
 function drawArena(width, height) {
@@ -68,6 +70,51 @@ function drawWall(width) {
   ctx.fillRect(0, state.wallY + 18, width, state.height - state.wallY - 18);
 }
 
+function drawReachBands() {
+  if (!state.battleActive) return;
+
+  const activeHeroes = state.heroes.filter((hero) => !hero.inactive);
+  const uniqueBands = [];
+  const seen = new Set();
+
+  for (const hero of activeHeroes) {
+    const config = heroConfig[hero.kind];
+    const damageReach = config.damageReach ?? config.reachDepth ?? config.range;
+    const effectReach = config.effectReach ?? damageReach;
+    const key = `${damageReach}:${effectReach}`;
+    if (!damageReach || seen.has(key)) continue;
+    seen.add(key);
+    uniqueBands.push({ hero, config, damageReach, effectReach });
+  }
+
+  uniqueBands.sort((a, b) => b.damageReach - a.damageReach);
+
+  for (const band of uniqueBands) {
+    const y = Math.max(10, state.wallY - band.damageReach);
+    const alpha = band.hero.role === "main" ? 0.11 : 0.07;
+    ctx.fillStyle = withAlpha(band.config.color, alpha * 0.35);
+    ctx.fillRect(0, y, state.width, 2);
+    ctx.strokeStyle = withAlpha(band.config.color, alpha);
+    ctx.lineWidth = band.hero.role === "main" ? 2 : 1;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(state.width, y);
+    ctx.stroke();
+
+    if (band.effectReach < band.damageReach) {
+      const effectY = Math.max(10, state.wallY - band.effectReach);
+      ctx.setLineDash([5, 7]);
+      ctx.strokeStyle = withAlpha(band.config.color, alpha * 1.45);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, effectY);
+      ctx.lineTo(state.width, effectY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+}
+
 function drawHeroes() {
   drawFormationLabels();
 
@@ -102,12 +149,6 @@ function drawHeroes() {
     ctx.textBaseline = "middle";
     ctx.fillText(config.shortLabel || config.label[0], hero.x, hero.y);
 
-    if (!state.battleActive) continue;
-    ctx.beginPath();
-    ctx.arc(hero.x, hero.y, config.range, -Math.PI * 0.88, -Math.PI * 0.12);
-    ctx.strokeStyle = "rgba(245, 240, 230, 0.035)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
   }
 }
 
@@ -193,8 +234,15 @@ function drawEnemies(now) {
     ctx.fillRect(enemy.x - hpWidth / 2, enemy.y - enemy.radius - 10, hpWidth * hpRatio, 4);
 
     if (burnUntil > now) drawStatusDot(enemy.x - 7, enemy.y + enemy.radius + 7, heroConfig.fire.color);
-    if (slowedUntil > now) drawStatusDot(enemy.x + 7, enemy.y + enemy.radius + 7, heroConfig.ice.color);
-    if ((enemy.poisonUntil ?? 0) > now) drawStatusDot(enemy.x, enemy.y + enemy.radius + 15, heroConfig.poison.color);
+    if (slowedUntil > now) {
+      drawStatusDot(enemy.x + 7, enemy.y + enemy.radius + 7, heroConfig.ice.color);
+      drawStatusPulse(enemy, heroConfig.ice.color, now, 0.2);
+    }
+    if ((enemy.frozenUntil ?? 0) > now) drawStatusPulse(enemy, heroConfig.ice.color, now, 0.38);
+    if ((enemy.poisonUntil ?? 0) > now) {
+      drawStatusDot(enemy.x, enemy.y + enemy.radius + 15, heroConfig.poison.color);
+      drawStatusPulse(enemy, heroConfig.poison.color, now, 0.16);
+    }
     if ((enemy.armourBrokenUntil ?? 0) > now) drawStatusDot(enemy.x - 11, enemy.y + enemy.radius + 15, heroConfig.earth.color);
     if ((enemy.stunnedUntil ?? 0) > now) drawStatusDot(enemy.x + 11, enemy.y + enemy.radius + 15, heroConfig.earth.color);
     drawEnemyTraitBadges(enemy);
@@ -278,12 +326,26 @@ function drawStatusDot(x, y, color) {
   ctx.fill();
 }
 
+function drawStatusPulse(enemy, color, now, alpha) {
+  const pulse = 0.5 + Math.sin(now / 130 + enemy.x) * 0.5;
+  ctx.beginPath();
+  ctx.arc(enemy.x, enemy.y, enemy.radius + 4 + pulse * 3, 0, Math.PI * 2);
+  ctx.strokeStyle = withAlpha(color, alpha);
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
 function drawProjectiles() {
   for (const projectile of state.projectiles) {
     ctx.beginPath();
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fillStyle = projectile.color;
     ctx.fill();
+    if (projectile.empowered) {
+      ctx.strokeStyle = "rgba(245, 240, 230, 0.75)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }
 }
 
@@ -305,5 +367,19 @@ function drawHits() {
     ctx.strokeStyle = withAlpha(hit.color, Math.max(0, hit.life / hit.maxLife));
     ctx.lineWidth = 4;
     ctx.stroke();
+  }
+}
+
+function drawFloaters() {
+  for (const floater of state.floaters) {
+    const alpha = Math.max(0, floater.life / floater.maxLife);
+    ctx.font = `800 ${floater.size}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = withAlpha("#101511", alpha * 0.7);
+    ctx.fillStyle = withAlpha(floater.color, alpha);
+    ctx.strokeText(floater.text, floater.x, floater.y);
+    ctx.fillText(floater.text, floater.x, floater.y);
   }
 }

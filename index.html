@@ -8,26 +8,39 @@
   </head>
   <body>
     <main class="game-shell">
-      <header class="top-bar" aria-label="Battle status">
-        <div>
-          <span class="label">Battle</span>
-          <strong id="battleText">1</strong>
+      <section id="mainMenuScreen" class="screen main-menu-screen" aria-label="Main menu">
+        <div class="main-menu-copy">
+          <p class="label">Prototype</p>
+          <h1>Wallbound</h1>
+          <p>Party defence roguelite prototype</p>
         </div>
-        <div>
-          <span class="label">Loot</span>
-          <strong id="lootText">0</strong>
-        </div>
-        <div>
-          <span class="label">Wall</span>
-          <strong id="wallText">30</strong>
-        </div>
-      </header>
-
-      <section class="play-area" aria-label="Wall defence board">
-        <canvas id="gameCanvas" width="390" height="620"></canvas>
+        <button id="startRunButton" class="primary" type="button">Start Run</button>
       </section>
 
-      <section class="controls" aria-label="Party training controls">
+      <section id="prepScreen" class="screen prep-screen hidden" aria-label="Preparation camp">
+        <header class="top-bar" aria-label="Preparation status">
+          <div>
+            <span class="label">Battle</span>
+            <strong id="prepBattleText">1</strong>
+          </div>
+          <div>
+            <span class="label">Loot</span>
+            <strong id="prepLootText">0</strong>
+          </div>
+          <div>
+            <span class="label">Wall</span>
+            <strong id="prepWallText">30</strong>
+          </div>
+        </header>
+
+        <section class="prep-panel" aria-label="Party training controls">
+          <div>
+            <span class="label">Camp</span>
+            <h1>Prepare the Wall</h1>
+          </div>
+          <p class="prep-note">Train party members, improve the wall, then choose who joins Jeff for the next battle.</p>
+        </section>
+
         <div class="hero-row" id="heroButtons">
           <button class="hero-card party-member fire" type="button" data-hero="fire">
             <span class="hero-mark"></span>
@@ -89,6 +102,38 @@
         </div>
 
         <button id="battleButton" class="primary" type="button">Start Battle</button>
+      </section>
+
+      <section id="battleScreen" class="screen battle-screen hidden" aria-label="Battle screen">
+        <header class="top-bar" aria-label="Battle status">
+          <div>
+            <span class="label">Battle</span>
+            <strong id="battleText">1</strong>
+          </div>
+          <div>
+            <span class="label">Loot</span>
+            <strong id="lootText">0</strong>
+          </div>
+          <div>
+            <span class="label">Wall</span>
+            <strong id="wallText">30</strong>
+          </div>
+        </header>
+
+        <section class="play-area" aria-label="Wall defence board">
+          <canvas id="gameCanvas" width="390" height="620"></canvas>
+        </section>
+
+        <section class="battle-footer" aria-label="Active battle party">
+          <div>
+            <span class="label">Active party</span>
+            <strong id="battlePartyText">Jeff / Ashka / Nyra / Raika</strong>
+          </div>
+          <div>
+            <span class="label">Wave state</span>
+            <strong id="battleStateText">Ready</strong>
+          </div>
+        </section>
       </section>
     </main>
 

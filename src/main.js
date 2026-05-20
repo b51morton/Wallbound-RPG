@@ -10,9 +10,18 @@ import { renderCombatDebug } from './ui/debugPanel.js';
 const canvas = document.querySelector("#gameCanvas");
 const ctx = canvas.getContext("2d");
 
+const mainMenuScreen = document.querySelector("#mainMenuScreen");
+const prepScreen = document.querySelector("#prepScreen");
+const battleScreen = document.querySelector("#battleScreen");
+const startRunButton = document.querySelector("#startRunButton");
+const prepBattleText = document.querySelector("#prepBattleText");
+const prepLootText = document.querySelector("#prepLootText");
+const prepWallText = document.querySelector("#prepWallText");
 const battleText = document.querySelector("#battleText");
 const lootText = document.querySelector("#lootText");
 const wallText = document.querySelector("#wallText");
+const battlePartyText = document.querySelector("#battlePartyText");
+const battleStateText = document.querySelector("#battleStateText");
 const battleButton = document.querySelector("#battleButton");
 const heroButtons = document.querySelector("#heroButtons");
 const wallButtons = document.querySelector("#wallButtons");
@@ -24,6 +33,7 @@ const manualUpgradeToggle = document.querySelector("#manualUpgradeToggle");
 const combatDebug = document.querySelector("#combatDebug");
 
 const state = {
+  screen: "mainMenu",
   battle: 1,
   maxBattles: 3,
   wave: 0,
@@ -48,6 +58,7 @@ const state = {
   projectiles: [],
   beams: [],
   hits: [],
+  floaters: [],
   heroes: [],
   mainHeroKind: "archer",
   partyMemberSlots: ["fire", "ice", "storm", null],
@@ -74,6 +85,21 @@ const state = {
 };
 
 const tempUpgradePool = createTempUpgradePool(state, addComboStack);
+
+function setScreen(screen) {
+  state.screen = screen;
+  mainMenuScreen.classList.toggle("hidden", screen !== "mainMenu");
+  prepScreen.classList.toggle("hidden", screen !== "preparation");
+  battleScreen.classList.toggle("hidden", screen !== "battle" && screen !== "partySelect" && screen !== "results");
+  if (screen === "battle" || screen === "partySelect" || screen === "results") {
+    requestAnimationFrame(resizeCanvas);
+  }
+  updateHud();
+}
+
+function startRun() {
+  setScreen("preparation");
+}
 
 function freshTempUpgrades() {
   return {
@@ -234,6 +260,7 @@ function layoutHeroes() {
 }
 
 function startBattle() {
+  if (state.screen !== "preparation") return;
   if (state.battleActive || !upgradePanel.classList.contains("hidden")) return;
   if (state.battle > state.maxBattles) return;
 
@@ -241,6 +268,7 @@ function startBattle() {
 }
 
 function showPartySelection() {
+  setScreen("partySelect");
   upgradeTitle.textContent = "Choose party";
   upgradeChoices.innerHTML = "";
 
@@ -325,6 +353,7 @@ function prepareBattleRun() {
   state.projectiles = [];
   state.beams = [];
   state.hits = [];
+  state.floaters = [];
   resetCombatBattleStats(state.gameTime);
 }
 
@@ -591,7 +620,7 @@ function updateHeroes(dt, now) {
 
     if (hero.cooldownLeft > 0) continue;
 
-    const target = findTarget(hero, config.range, now);
+    const target = findTarget(hero, now);
     if (!target) continue;
 
     const level = state.heroLevels[hero.kind];
@@ -603,53 +632,129 @@ function updateHeroes(dt, now) {
       continue;
     }
 
+    const empoweredArrow = hero.kind === "archer" && targetComboAssistSources(hero.kind, target).length > 0;
     state.projectiles.push({
       kind: hero.kind,
       x: hero.x,
       y: hero.y - 10,
       target,
       speed: config.projectileSpeed,
-      color: config.color,
-      radius: hero.kind === "storm" || hero.kind === "archer" ? 4 : 5
+      color: empoweredArrow ? "#f5f0e6" : config.color,
+      radius: empoweredArrow ? 5 : hero.kind === "storm" || hero.kind === "archer" ? 4 : 5,
+      empowered: empoweredArrow
     });
   }
 }
 
-function findTarget(hero, range, now = state.gameTime) {
-  if (hero.kind === "earth") {
-    const armouredTarget = findArmouredTarget(hero, range, now);
-    if (armouredTarget) return armouredTarget;
-  }
-
+function findTarget(hero, now = state.gameTime) {
   let chosen = null;
-  let bestY = -Infinity;
+  let bestScore = -Infinity;
 
   for (const enemy of state.enemies) {
-    if (enemy.y > state.wallY + 20) continue;
-    const dist = distance(hero, enemy);
-    if (dist <= range && enemy.y > bestY) {
+    if (!enemyInHeroReach(hero, enemy)) continue;
+    const score = scoreTargetForHero(hero, enemy, now);
+    if (score > bestScore) {
       chosen = enemy;
-      bestY = enemy.y;
+      bestScore = score;
     }
   }
 
   return chosen;
 }
 
-function findArmouredTarget(hero, range, now) {
-  let chosen = null;
-  let bestDistance = Infinity;
+function heroReachDepth(kind) {
+  return heroDamageReach(kind);
+}
 
-  for (const enemy of state.enemies) {
-    if (!hasActiveArmor(enemy, now) || enemy.y > state.wallY + 20) continue;
-    const dist = distance(hero, enemy);
-    if (dist <= range && dist < bestDistance) {
-      chosen = enemy;
-      bestDistance = dist;
-    }
+function heroDamageReach(kind) {
+  const config = heroConfig[kind];
+  return config.damageReach ?? config.reachDepth ?? config.range;
+}
+
+function heroEffectReach(kind) {
+  const config = heroConfig[kind];
+  return config.effectReach ?? config.damageReach ?? config.reachDepth ?? config.range;
+}
+
+function enemyInHeroReach(hero, enemy) {
+  if (enemy.y > state.wallY + 20) return false;
+  return enemyDistanceFromWall(enemy) <= heroDamageReach(hero.kind);
+}
+
+function enemyInHeroEffectReach(kind, enemy) {
+  return enemyDistanceFromWall(enemy) <= heroEffectReach(kind);
+}
+
+function enemyDistanceFromWall(enemy) {
+  return state.wallY - enemy.y;
+}
+
+function scoreTargetForHero(hero, enemy, now = state.gameTime) {
+  let score = enemy.y * 0.18;
+  const kind = hero.kind;
+  const clusterScore = nearbyEnemyCount(enemy, kind === "storm" ? 120 : 86);
+  const hpRatio = enemy.maxHp > 0 ? enemy.hp / enemy.maxHp : 0;
+  const burning = (enemy.burnUntil ?? 0) > now;
+  const slowed = (enemy.slowedUntil ?? 0) > now;
+  const frozen = (enemy.frozenUntil ?? 0) > now;
+  const poisoned = (enemy.poisonUntil ?? 0) > now;
+  const armourBroken = (enemy.armourBrokenUntil ?? 0) > now;
+  const activeArmor = hasActiveArmor(enemy, now);
+  const controlled = slowed || frozen;
+  const effectInReach = enemyInHeroEffectReach(kind, enemy);
+  const effectBonus = effectInReach ? 1 : 0.45;
+  if (effectInReach) score += 8;
+
+  if (kind === "archer") {
+    if (state.temp.archerVsBurning > 1 && burning) score += 42;
+    if (state.temp.archerVsSlowed > 1 && controlled) score += 58;
+    if (state.temp.archerVsStormMarked > 1 && (enemy.stormMarkedUntil ?? 0) > now) score += 46;
+    if (state.temp.archerVsPoisoned > 1 && poisoned) score += 48;
+    if (state.temp.archerVsBroken > 1 && armourBroken) score += 62;
   }
 
-  return chosen;
+  if (kind === "fire") {
+    if (state.temp.fireSpread > 0 && effectInReach) score += clusterScore * 18;
+    if (enemy.pattern === "zigzag") score += (enemy.zigzagPhase === "weave" || enemy.zigzagPhase === "prep" ? 44 : 20) * effectBonus;
+    if (state.temp.poisonVsBurning > 1 && poisoned && effectInReach) score += 34;
+    if (!burning) score += 18 * effectBonus;
+  }
+
+  if (kind === "ice") {
+    score += enemy.speed * 0.12;
+    if (!controlled) score += effectInReach ? 34 : 14;
+    if (enemy.y > state.wallY - 140) score += 22;
+    if (state.temp.earthVsControlled > 1 && !controlled && effectInReach) score += 16;
+  }
+
+  if (kind === "storm") {
+    score += clusterScore * 26;
+    if (state.temp.stormPoisonRange > 1 && poisoned) score += 48;
+    if (clusterScore === 0) score -= state.temp.stormBounces > 0 ? 16 : 0;
+  }
+
+  if (kind === "poison") {
+    score += hpRatio * 45;
+    if (!poisoned) score += effectInReach ? 38 : 18;
+    if (burning && state.temp.poisonVsBurning > 1 && effectInReach) score += 48;
+    if (state.temp.fireSpreadsPoison > 0 && burning && effectInReach) score += 36;
+    if (enemy.hp > 40) score += 18;
+  }
+
+  if (kind === "earth") {
+    if (activeArmor) score += effectInReach ? 160 : 78;
+    if (enemy.maxArmor > 0 && !armourBroken) score += effectInReach ? 52 : 18;
+    if (state.temp.earthVsControlled > 1 && controlled && effectInReach) score += 70;
+    if (state.temp.archerVsBroken > 1 && activeArmor && effectInReach) score += 40;
+    if (enemy.bounce) score += 34;
+    if (enemy.y > state.wallY - 130) score += 18;
+  }
+
+  return score;
+}
+
+function nearbyEnemyCount(origin, radius) {
+  return state.enemies.filter((enemy) => enemy !== origin && distance(enemy, origin) < radius).length;
 }
 
 function updateProjectiles(dt, now) {
@@ -706,6 +811,10 @@ function applyHeroHit(kind, target, now, source) {
         recordAssistDamage(assistSource, comboDamage / assistSources.length);
         recordComboTrigger(kind, assistSource);
       }
+      if (kind === "archer") {
+        makeHit(target.x, target.y, heroConfig.archer.color, 24);
+        makeFloatingText(target.x, target.y - target.radius - 14, "BONUS", heroConfig.archer.color, 0.45, 9);
+      }
     }
   } else {
     makeHit(target.x, target.y, "#ffffff", 18);
@@ -713,18 +822,25 @@ function applyHeroHit(kind, target, now, source) {
   }
 
   if (kind === "fire") {
-    target.burnUntil = now + config.dotTime * state.temp.fireDotTime * 1000;
-    target.burnDps = (config.dotDamage * damageScale) / config.dotTime;
-    target.burnSource = "fire";
-    target.burnCategory = "burnDamage";
-    recordStatus("fire", "burnsApplied");
-    spreadFire(target, now, damageScale);
-    spreadPoisonFromFire(target, now, damageScale);
+    if (enemyInHeroEffectReach(kind, target)) {
+      target.burnUntil = now + config.dotTime * state.temp.fireDotTime * 1000;
+      target.burnDps = (config.dotDamage * damageScale) / config.dotTime;
+      target.burnSource = "fire";
+      target.burnCategory = "burnDamage";
+      recordStatus("fire", "burnsApplied");
+      makeFloatingText(target.x, target.y - target.radius - 10, "BURN", heroConfig.fire.color, 0.5, 10);
+      spreadFire(target, now, damageScale);
+      spreadPoisonFromFire(target, now, damageScale);
+    }
   }
 
   if (kind === "ice") {
-    freezeEnemy(target, now);
-    splashIce(target, now, damageScale);
+    if (enemyInHeroEffectReach(kind, target)) {
+      freezeEnemy(target, now);
+      splashIce(target, now, damageScale);
+    } else {
+      slowEnemy(target, now, 0.45, 0.68);
+    }
   }
 
   if (kind === "storm") {
@@ -733,11 +849,13 @@ function applyHeroHit(kind, target, now, source) {
   }
 
   if (kind === "poison") {
-    poisonEnemy(target, now, damageScale);
+    poisonEnemy(target, now, damageScale, enemyInHeroEffectReach(kind, target) ? 1 : 0.45);
   }
 
   if (kind === "earth") {
-    earthImpact(target, now, damageScale);
+    if (enemyInHeroEffectReach(kind, target)) {
+      earthImpact(target, now, damageScale);
+    }
   }
 
   makeHit(target.x, target.y, config.color, 20);
@@ -761,6 +879,7 @@ function handleProjectileMiss(projectile, now) {
     recordNearMiss("fire");
     applyFireGrazeBurn(target, now);
     makeHit(target.x, target.y, heroConfig.fire.color, 12);
+    makeFloatingText(target.x, target.y - target.radius - 10, "BURN", heroConfig.fire.color, 0.45, 9);
     return;
   }
 
@@ -869,6 +988,8 @@ function spreadFire(origin, now, damageScale) {
     enemy.burnCategory = "burnDamage";
     recordStatus("fire", "burnsApplied");
     makeBeam(origin, enemy, heroConfig.fire.color, 0.18, 4);
+    makeHit(enemy.x, enemy.y, heroConfig.fire.color, 14);
+    makeFloatingText(enemy.x, enemy.y - enemy.radius - 10, "BURN", heroConfig.fire.color, 0.45, 9);
   }
 }
 
@@ -890,6 +1011,8 @@ function spreadPoisonFromFire(origin, now, damageScale) {
     recordStatus("poison", "comboTargets");
     recordStatus("fire", "assistTriggers");
     makeBeam(origin, enemy, heroConfig.poison.color, 0.14, 3);
+    makeHit(enemy.x, enemy.y, heroConfig.poison.color, 16);
+    makeFloatingText(enemy.x, enemy.y - enemy.radius - 10, "POISON", heroConfig.poison.color, 0.5, 9);
   }
 }
 
@@ -903,15 +1026,30 @@ function freezeEnemy(enemy, now) {
   recordStatus("ice", "freezesApplied");
   recordStatus("ice", "slowsApplied");
   recordStatus("ice", "slowTimeApplied", slowMs / 1000);
+  makeHit(enemy.x, enemy.y, heroConfig.ice.color, 24);
+  makeFloatingText(enemy.x, enemy.y - enemy.radius - 10, "FREEZE", heroConfig.ice.color, 0.5, 9);
 }
 
-function poisonEnemy(enemy, now, damageScale) {
-  const poisonTime = heroConfig.poison.poisonTime * state.temp.poisonDuration;
+function slowEnemy(enemy, now, durationScale = 1, slowAmount = 0.52) {
+  if (hasImmunity(enemy, "ice")) return;
+  const slowMs = heroConfig.ice.slowTime * state.temp.iceDuration * durationScale * 1000;
+  enemy.slowedUntil = Math.max(enemy.slowedUntil ?? 0, now + slowMs);
+  enemy.slowAmount = Math.min(enemy.slowAmount ?? 1, slowAmount);
+  recordStatus("ice", "slowsApplied");
+  recordStatus("ice", "slowTimeApplied", slowMs / 1000);
+  makeHit(enemy.x, enemy.y, heroConfig.ice.color, 14);
+  makeFloatingText(enemy.x, enemy.y - enemy.radius - 10, "SLOW", heroConfig.ice.color, 0.4, 8);
+}
+
+function poisonEnemy(enemy, now, damageScale, effectScale = 1) {
+  const poisonTime = heroConfig.poison.poisonTime * state.temp.poisonDuration * effectScale;
   enemy.poisonUntil = now + poisonTime * 1000;
-  enemy.poisonDps = (heroConfig.poison.poisonDamage * damageScale * state.temp.poisonDamage) / heroConfig.poison.poisonTime;
+  enemy.poisonDps = (heroConfig.poison.poisonDamage * damageScale * state.temp.poisonDamage * effectScale) / heroConfig.poison.poisonTime;
   enemy.poisonSource = "poison";
   enemy.poisonCategory = "poisonDamage";
   recordStatus("poison", "poisonApplications");
+  makeHit(enemy.x, enemy.y, heroConfig.poison.color, 18);
+  makeFloatingText(enemy.x, enemy.y - enemy.radius - 10, "POISON", heroConfig.poison.color, 0.5, 9);
   if ((enemy.burnUntil ?? 0) > now && state.temp.poisonVsBurning > 1) {
     recordComboTrigger("poison", "fire");
   }
@@ -924,7 +1062,11 @@ function earthImpact(enemy, now, damageScale) {
   enemy.armor = Math.max(0, oldArmor - 8 * damageScale * state.temp.earthArmorDamage);
   enemy.armourBrokenUntil = now + heroConfig.earth.armourBreakTime * state.temp.earthBreakDuration * 1000;
   if (armorDamage > 0) recordDamage("earth", armorDamage, "armorDamage");
-  if (hadActiveArmor) recordArmorBreak("earth");
+  if (hadActiveArmor) {
+    recordArmorBreak("earth");
+    makeHit(enemy.x, enemy.y, heroConfig.earth.color, 30);
+    makeFloatingText(enemy.x, enemy.y - enemy.radius - 12, "CRACK", heroConfig.earth.color, 0.6, 11);
+  }
   const controlled = (enemy.frozenUntil ?? 0) > now || (enemy.slowedUntil ?? 0) > now;
   const stunMultiplier = controlled ? state.temp.earthVsControlled : 1;
   const baseStunSeconds = heroConfig.earth.stunTime * state.temp.earthStunDuration * 0.7;
@@ -936,6 +1078,7 @@ function earthImpact(enemy, now, damageScale) {
   }
   enemy.stunnedUntil = now + baseStunSeconds * stunMultiplier * 1000;
   recordStatus("earth", "stunsApplied");
+  makeFloatingText(enemy.x, enemy.y + enemy.radius + 18, "STUN", heroConfig.earth.color, 0.45, 9);
 }
 
 function splashIce(origin, now, damageScale) {
@@ -977,13 +1120,13 @@ function chainStorm(origin, now, damageScale, source, chainDamageScale = 1) {
       recordComboTrigger("storm", "poison");
     }
     markStormForArcher(next, now);
-    makeBeam(current, next, heroConfig.storm.color, 0.16, 3);
+    makeBeam(current, next, heroConfig.storm.color, 0.14, 2.5, 0.86);
     hit.add(next);
     current = next;
   }
 
   if (source) {
-    makeBeam({ x: source.x, y: source.y }, origin, heroConfig.storm.color, 0.1, 3);
+    makeBeam({ x: source.x, y: source.y }, origin, heroConfig.storm.color, 0.1, 2.5, 0.8);
   }
 }
 
@@ -997,7 +1140,8 @@ function castStormPierce(hero, target, level, now) {
   const laneWidth = 30 + state.temp.stormPierce * 10;
   const end = { x: target.x, y: -20 };
   let hits = 0;
-  makeBeam(hero, end, heroConfig.storm.color, 0.16, 3);
+  let primaryHit = false;
+  makeBeam(hero, end, heroConfig.storm.color, 0.14, 3, 0.82);
 
   for (const enemy of state.enemies) {
     if (hasImmunity(enemy, "storm")) continue;
@@ -1008,12 +1152,13 @@ function castStormPierce(hero, target, level, now) {
       applyTrackedDirectDamage(enemy, "storm", heroConfig.storm.damage * damageScale * 0.9, now);
       markStormForArcher(enemy, now);
       makeHit(enemy.x, enemy.y, heroConfig.storm.color, 16);
+      if (enemy === target) primaryHit = true;
     }
   }
 
   if (hits === 0) recordMiss("storm");
 
-  if (state.temp.stormBounces > 0) {
+  if (primaryHit && state.temp.stormBounces > 0) {
     chainStorm(target, now, damageScale, null, 0.55);
   }
 }
@@ -1028,6 +1173,12 @@ function updateEffects(dt) {
     state.hits[i].life -= dt;
     state.hits[i].radius += dt * 54;
     if (state.hits[i].life <= 0) state.hits.splice(i, 1);
+  }
+
+  for (let i = state.floaters.length - 1; i >= 0; i -= 1) {
+    state.floaters[i].life -= dt;
+    state.floaters[i].y -= dt * 28;
+    if (state.floaters[i].life <= 0) state.floaters.splice(i, 1);
   }
 }
 
@@ -1056,11 +1207,13 @@ function endBattle(won) {
   state.projectiles = [];
   state.beams = [];
   state.hits = [];
+  state.floaters = [];
 
   if (won && !completedPrototype) {
     state.battle += 1;
   }
 
+  setScreen("results");
   battleButton.disabled = false;
   battleButton.textContent = completedPrototype ? "Prototype Complete" : "Start Battle";
   if (completedPrototype) {
@@ -1192,6 +1345,7 @@ function showWavePreview(waveNumber) {
     : "Use this preview to judge your latest temporary upgrade choice.";
   addChoice(startTitle, [`Expected: ${enemyCountForWave(waveNumber, state.battle)} enemies`, previewHint], () => {
     upgradePanel.classList.add("hidden");
+    setScreen("battle");
     beginWave(waveNumber);
   });
 
@@ -1199,6 +1353,7 @@ function showWavePreview(waveNumber) {
     addChoice("Back to Training", ["Close this preview and spend loot before starting the battle."], () => {
       state.previewWave = 0;
       upgradePanel.classList.add("hidden");
+      setScreen("preparation");
       updateHud();
     });
   }
@@ -1270,8 +1425,9 @@ function showBattleResult(won, reward, completedPrototype = false) {
   upgradeChoices.innerHTML = "";
   const title = won ? `Secure ${reward} loot` : `Recover ${reward} loot`;
   const text = state.lastBattleSummary;
-  addChoice(title, text, () => {
+  addChoice(completedPrototype ? "Return to Main Menu" : title, text, () => {
     upgradePanel.classList.add("hidden");
+    setScreen(completedPrototype ? "mainMenu" : "preparation");
     updateHud();
   });
   upgradePanel.classList.remove("hidden");
@@ -1353,6 +1509,7 @@ function setChoiceContent(button, title, text) {
 }
 
 function trainHero(kind) {
+  if (state.screen !== "preparation") return;
   if (state.battleActive || !upgradePanel.classList.contains("hidden")) return;
 
   const cost = trainingCost(kind);
@@ -1364,6 +1521,7 @@ function trainHero(kind) {
 }
 
 function buildWallUpgrade(kind) {
+  if (state.screen !== "preparation") return;
   if (state.battleActive || !upgradePanel.classList.contains("hidden")) return;
 
   const cost = wallUpgradeCost(kind);
@@ -1399,6 +1557,11 @@ function updateHud() {
   battleText.textContent = state.battleActive ? `${state.battle}-${activeWave}` : `${Math.min(state.battle, state.maxBattles)}/${state.maxBattles}`;
   lootText.textContent = state.battleActive && state.securedLoot > 0 ? `${state.loot}+${state.securedLoot}` : String(state.loot);
   wallText.textContent = String(Math.max(0, state.wall));
+  prepBattleText.textContent = `${Math.min(state.battle, state.maxBattles)}/${state.maxBattles}`;
+  prepLootText.textContent = String(state.loot);
+  prepWallText.textContent = `${state.maxWall}`;
+  battlePartyText.textContent = activePartyLabel();
+  battleStateText.textContent = battleStateLabel(activeWave);
 
   for (const kind of trainableHeroKinds) {
     document.querySelector(`#${kind}Level`).textContent = state.heroLevels[kind];
@@ -1407,7 +1570,7 @@ function updateHud() {
 
   for (const button of heroButtons.querySelectorAll("button")) {
     const kind = button.dataset.hero;
-    button.disabled = state.battleActive || state.loot < trainingCost(kind) || !upgradePanel.classList.contains("hidden");
+    button.disabled = state.screen !== "preparation" || state.battleActive || state.loot < trainingCost(kind) || !upgradePanel.classList.contains("hidden");
   }
 
   document.querySelector("#fortifyLevel").textContent = state.wallLevels.fortify;
@@ -1417,8 +1580,25 @@ function updateHud() {
 
   for (const button of wallButtons.querySelectorAll("button")) {
     const kind = button.dataset.wallUpgrade;
-    button.disabled = state.battleActive || state.loot < wallUpgradeCost(kind) || !upgradePanel.classList.contains("hidden");
+    button.disabled = state.screen !== "preparation" || state.battleActive || state.loot < wallUpgradeCost(kind) || !upgradePanel.classList.contains("hidden");
   }
+  battleButton.disabled = state.screen !== "preparation" || state.battleActive || !upgradePanel.classList.contains("hidden") || state.battle > state.maxBattles;
+  battleButton.textContent = state.battle > state.maxBattles ? "Prototype Complete" : "Start Battle";
+}
+
+function activePartyLabel() {
+  const names = [state.mainHeroKind, ...selectedPartyKinds()]
+    .filter(Boolean)
+    .map((kind) => heroConfig[kind]?.name || kind);
+  return names.join(" / ");
+}
+
+function battleStateLabel(activeWave) {
+  if (state.waveActive) return `Wave ${activeWave}/${state.wavesPerBattle}`;
+  if (state.battleActive && state.previewWave) return `Planning Wave ${state.previewWave}/${state.wavesPerBattle}`;
+  if (state.screen === "results") return "Battle result";
+  if (state.battleActive) return "Preparing wave";
+  return "Ready";
 }
 
 function toggleCombatDebug() {
@@ -1474,6 +1654,18 @@ function makeHit(x, y, color, radius) {
   });
 }
 
+function makeFloatingText(x, y, text, color, life = 0.5, size = 10) {
+  state.floaters.push({
+    x,
+    y,
+    text,
+    color,
+    life,
+    maxLife: life,
+    size
+  });
+}
+
 function gameLoop(now) {
   const dt = Math.min(0.033, (now - state.lastTime) / 1000);
   state.lastTime = now;
@@ -1500,6 +1692,7 @@ function firstImmunityColor(enemy) {
 }
 
 window.addEventListener("resize", resizeCanvas);
+startRunButton.addEventListener("click", startRun);
 battleButton.addEventListener("click", startBattle);
 heroButtons.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-hero]");
@@ -1526,7 +1719,7 @@ window.addEventListener("keydown", (event) => {
 
 resizeCanvas();
 recalculateWallStats();
-updateHud();
+setScreen("mainMenu");
 updateDebugVisibility();
 updateManualUpgradeToggle();
 requestAnimationFrame(gameLoop);
