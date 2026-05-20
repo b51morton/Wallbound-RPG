@@ -32,40 +32,40 @@
           <button class="hero-card party-member fire" type="button" data-hero="fire">
             <span class="hero-mark"></span>
             <span>
-              <strong>Fire <b id="fireLevel">1</b></strong>
-              <small>Party Member</small>
+              <strong>Ashka <b id="fireLevel">1</b></strong>
+              <small>Fire Party Member</small>
               <small id="fireCost">Train 3</small>
             </span>
           </button>
           <button class="hero-card party-member ice" type="button" data-hero="ice">
             <span class="hero-mark"></span>
             <span>
-              <strong>Ice <b id="iceLevel">1</b></strong>
-              <small>Party Member</small>
+              <strong>Nyra <b id="iceLevel">1</b></strong>
+              <small>Ice Party Member</small>
               <small id="iceCost">Train 3</small>
             </span>
           </button>
-          <button class="hero-card party-member lightning storm" type="button" data-hero="lightning">
+          <button class="hero-card party-member storm" type="button" data-hero="storm">
             <span class="hero-mark"></span>
             <span>
-              <strong>Storm <b id="lightningLevel">1</b></strong>
-              <small>Party Member</small>
-              <small id="lightningCost">Train 3</small>
+              <strong>Raika <b id="stormLevel">1</b></strong>
+              <small>Storm Party Member</small>
+              <small id="stormCost">Train 3</small>
             </span>
           </button>
           <button class="hero-card party-member poison" type="button" data-hero="poison">
             <span class="hero-mark"></span>
             <span>
-              <strong>Poison <b id="poisonLevel">1</b></strong>
-              <small>Party Member</small>
+              <strong>Vessa <b id="poisonLevel">1</b></strong>
+              <small>Poison Party Member</small>
               <small id="poisonCost">Train 3</small>
             </span>
           </button>
           <button class="hero-card party-member earth" type="button" data-hero="earth">
             <span class="hero-mark"></span>
             <span>
-              <strong>Earth <b id="earthLevel">1</b></strong>
-              <small>Party Member</small>
+              <strong>Torren <b id="earthLevel">1</b></strong>
+              <small>Earth Party Member</small>
               <small id="earthCost">Train 3</small>
             </span>
           </button>
@@ -91,6 +91,10 @@
         <button id="battleButton" class="primary" type="button">Start Battle</button>
       </section>
     </main>
+
+    <button id="debugToggle" class="debug-toggle" type="button" aria-controls="combatDebug" aria-expanded="false">Debug</button>
+    <button id="manualUpgradeToggle" class="debug-toggle manual-upgrade-toggle" type="button" aria-pressed="false">Manual Upgrades Off</button>
+    <aside id="combatDebug" class="combat-debug hidden" aria-label="Combat debug tracker"></aside>
 
     <div id="upgradePanel" class="upgrade-panel hidden" role="dialog" aria-modal="true" aria-label="Choose an upgrade">
       <div class="upgrade-box">

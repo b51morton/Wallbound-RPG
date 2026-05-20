@@ -38,19 +38,19 @@ The current game has:
 - Enemies show letter markers and small trait badges so their role is easier to read.
 - Brawlers are drawn heavier, zigzag enemies have a motion slash, and immunity badges appear above enemies.
 - Armoured enemies show an `A` marker, which changes to cracked/broken when Earth breaks armour.
-- Trainable party members: Fire, Ice, Storm, Poison, and Earth.
-- Poison and Earth are first-pass party members for combo testing.
-- One simple mainstay Archer stands in the centre of the wall lineup and fires neutral physical arrows.
+- Trainable party members: Ashka, Nyra, Raika, Vessa, and Torren.
+- Vessa and Torren are first-pass party members for combo testing.
+- Jeff is the simple Main Hero in the centre of the wall lineup and fires neutral Physical arrows.
 - The wall lineup is a 5-slot formation: Party, Party, Main Hero, Party, Party.
 - If fewer than four party members are selected, empty party slots are shown as inactive placeholders.
-- Fire starts as a single bolt with burn damage over time.
-- Ice starts as a single freeze and slow.
-- Storm starts as a single lightning strike.
-- Temporary battle upgrades that can add fire spread, ice splash, lightning chain, or lightning pierce.
+- Ashka starts as a single Fire bolt with burn damage over time.
+- Nyra starts as a single Ice freeze and slow.
+- Raika starts as a single Storm strike.
+- Temporary battle upgrades can add Ashka Fire spread, Nyra Ice splash, Raika Storm chain, or Raika Storm pierce.
 - Temporary upgrades are stronger and clearly marked as battle-only.
-- Upgrade choices are labelled by role, such as Fire, Ice, Storm, Poison, Earth, Archer, Wall, Combo, or All.
+- Upgrade choices use character names where readable, such as Ashka, Nyra, Raika, Jeff, or Combo.
 - Upgrade choices use plain numeric wording where possible.
-- Archer temporary upgrades are limited to damage and attack speed for now.
+- Jeff temporary upgrades are limited to arrow damage and attack speed for now.
 - Temporary combo upgrades appear only when the matching party members are selected.
 - Permanent hero training bought with loot secured from battles.
 - Permanent wall upgrades bought with loot between battles.
@@ -73,47 +73,58 @@ Wallbound is moving toward a 5-character wall party:
 
 For this prototype:
 
-- Main Hero: Archer.
-- Archer is always in the centre slot.
-- Archer deals neutral Physical damage.
-- Archer is tuned as steady baseline damage, not the whole build.
-- Archer only has modest temporary damage and attack speed upgrades.
-- Party Members: choose up to four from Fire, Ice, Storm, Poison, and Earth.
+- Main Hero: Jeff.
+- Internal key: `archer`.
+- Jeff is always in the centre slot.
+- Jeff deals neutral Physical damage with arrows.
+- Jeff is tuned as steady baseline damage, not the whole build.
+- Jeff only has modest temporary damage and attack speed upgrades.
+- Party Members: choose up to four from Ashka, Nyra, Raika, Vessa, and Torren.
 - If fewer than four party members are selected, empty party slots are shown as inactive placeholders.
 
 Do not add selectable main heroes, roster screens, gear, critical hits, special arrows, or skill trees yet.
 
+## Naming Rules
+
+Wallbound keeps three naming layers separate:
+
+- Internal keys are stable lowercase code identifiers: `archer`, `fire`, `ice`, `storm`, `poison`, `earth`, `holy`, `shadow`, `arcane`, `wind`, and `blood`.
+- Character names are what players see: Jeff, Ashka, Nyra, Raika, Vessa, Torren, Solen, Morvane, Elowen, Kael, and Riven.
+- Damage types are combat labels: Physical, Fire, Ice, Storm, Poison, Earth, Holy, Shadow, Arcane, Wind, and Blood.
+
+Do not use character names as logic keys. Do not use damage type names as character names unless the UI is intentionally describing combat.
+
 ## Damage Types
 
-The planned full damage roster is:
+The planned full character roster is:
 
-- Physical: reliable neutral damage, mainly Archer for now.
-- Fire: burn damage over time and future spread effects.
-- Ice: freeze, slow, and control.
-- Storm: lightning burst, chain effects, and pierce.
-- Poison: damage over time, weakening, and attrition pressure.
-- Holy: defensive support, cleansing, anti-corruption damage, and shielding.
-- Shadow: curses, life drain, fear, ramping damage, and debuffs.
-- Arcane: raw magic, resistance piercing, unstable blasts, and random magical effects.
-- Earth: armour breaking, stun, heavy impact, barriers, and terrain slow.
-- Wind: knockback, speed manipulation, multi-hit slicing, and pushing enemies away.
-- Blood: bleed damage, lifesteal, executes, and bonus damage against wounded enemies.
+- Jeff: `archer`, Main Hero, Physical, reliable neutral arrow damage.
+- Ashka: `fire`, Party Member, Fire, burn damage over time and graze burn against evasive enemies.
+- Nyra: `ice`, Party Member, Ice, freeze, slow, and control.
+- Raika: `storm`, Party Member, Storm, lightning burst, chain effects, and pierce.
+- Vessa: `poison`, Party Member, Poison, weakening and attrition pressure.
+- Torren: `earth`, Party Member, Earth, armour breaking and heavy impact.
+- Solen: `holy`, Party Member, Holy, future defensive support, cleansing, anti-corruption damage, and shielding.
+- Morvane: `shadow`, Party Member, Shadow, future curses, life drain, fear, ramping damage, and debuffs.
+- Elowen: `arcane`, Party Member, Arcane, future raw magic, resistance piercing, unstable blasts, and rule-breaking effects.
+- Kael: `wind`, Party Member, Wind, future knockback, speed manipulation, slicing, and pushback.
+- Riven: `blood`, Party Member, Blood, future bleed, lifesteal, executes, and wounded-enemy damage.
 
-Physical, Fire, Ice, Storm, Poison, and Earth are active in the current prototype. The other damage types are documented for later.
+Jeff, Ashka, Nyra, Raika, Vessa, and Torren are active in the current prototype. Solen, Morvane, Elowen, Kael, and Riven are documented in config but not selectable yet.
 
 ## Upgrade Rules
 
 Permanent upgrades are predictable individual training buttons:
 
-- Fire, Ice, Storm, Poison, and Earth can be trained from the bottom controls.
+- Ashka, Nyra, Raika, Vessa, and Torren can be trained from the bottom controls.
 - Permanent training can apply to any unlocked party member, but only selected party members appear in the current battle formation.
-- Archer is not part of the training controls yet; the Main Hero remains simple for this phase.
+- Jeff is not part of the training controls yet; the Main Hero remains simple for this phase.
 
 Temporary upgrades are battle-only and can create synergy:
 
 - Some upgrades improve one party member for the current battle.
 - Some combo upgrades only appear when the required party members are selected.
-- Examples currently include Fire plus Poison, Ice plus Earth, Storm plus Poison, and Earth helping Archer.
+- Examples currently include Ashka plus Vessa, Nyra plus Torren, Raika plus Vessa, and Torren helping Jeff.
 
 ## Enemy Counterplay
 
@@ -121,22 +132,22 @@ Zigzag enemies:
 
 - Move slower than before.
 - Use a readable movement cycle: straight, prep/lean, active weave, recovery.
-- During active weave, direct projectiles such as Archer arrows can miss.
-- If Fire narrowly misses during the weave, it applies a weaker graze burn instead of doing nothing.
+- During active weave, direct projectiles such as Jeff's arrows can miss.
+- If Ashka's Fire narrowly misses during the weave, it applies a weaker graze burn instead of doing nothing.
 
 Armoured enemies:
 
 - Reduce incoming direct damage while armour is active.
-- Earth prioritises armoured enemies in range.
-- Earth hits break armour for a short time and reduce armour.
-- While armour is broken, Archer and other direct damage are much more effective.
+- Torren prioritises armoured enemies in range.
+- Torren's Earth hits break armour for a short time and reduce armour.
+- While armour is broken, Jeff and other direct damage are much more effective.
 - Current armoured enemies: Ashguard and Brawler.
 
 Party targeting direction:
 
-- Earth currently has the first role-based targeting rule.
-- Earth checks for active-armour enemies in range first.
-- If no armoured enemy is in range, Earth falls back to normal closest-to-wall targeting.
+- Torren currently has the first role-based targeting rule.
+- Torren checks for active-armour enemies in range first.
+- If no armoured enemy is in range, Torren falls back to normal closest-to-wall targeting.
 - Future party members may get targeting personalities later, but they are not implemented yet.
 
 ## The Best Place To Start Learning
@@ -146,7 +157,7 @@ Start with `game.js`.
 Read it in this order:
 
 1. `heroConfig`
-   This defines Fire, Ice, Storm, Poison, Earth, and the simple Archer base damage, cooldown, range, and effects.
+   This stores each internal key, character name, damage type, role label, short marker, description, and whether that character is currently implemented.
 
 2. `damageTypeRoster`
    This lightly documents the current and future damage types without implementing a full damage system yet.
@@ -155,16 +166,16 @@ Read it in this order:
    This defines enemy health, markers, movement pattern, wall damage, ranged attacks, bounce behaviour, and immunities.
 
 4. `tempUpgradePool`
-   This is where the battle-only upgrades live, including Archer upgrades and selected-party combo upgrades.
+   This is where the battle-only upgrades live, including Jeff upgrades and selected-party combo upgrades.
 
 5. `state`
    This is the current run: battle number, wave, loot, wall health, hero formation, enemies, projectiles, and temporary upgrades.
 
 6. `mainHeroKind` and `partyMemberSlots`
-   These define the simple 5-slot party formation. Archer is the current Main Hero.
+   These define the simple 5-slot party formation. Jeff uses the internal `archer` key as the current Main Hero.
 
-7. `partyRosterKinds`, `showPartySelection`, `refreshPartyPickerButtons`, and `selectedPartyKinds`
-   These power the simple pre-battle party picker.
+7. `partyRosterKinds`, `selectablePartyKinds`, `showPartySelection`, `refreshPartyPickerButtons`, and `selectedPartyKinds`
+   These power the simple pre-battle party picker. Future party members are in `partyRosterKinds`, while only implemented members are selectable.
 
 8. `layoutHeroes`
    This turns the formation into five visible wall slots.
@@ -185,13 +196,13 @@ Read it in this order:
    These are the heart of the game logic.
 
 14. `findTarget`, `findArmouredTarget`, and `hasActiveArmor`
-   These contain the first role-based targeting rule: Earth prioritises active armour.
+   These contain the first role-based targeting rule: Torren prioritises active armour.
 
 15. `updateZigzagMovement`, `projectileMissedEvasiveTarget`, and `applyFireGrazeBurn`
    These make zigzag enemies evasive in a readable, phase-based way.
 
 16. `directDamageAfterArmor`, `poisonEnemy`, `earthImpact`, and combo helper logic near `applyHeroHit`
-   These are the first-pass Poison, Earth, and combo behaviours.
+   These are the first-pass Vessa, Torren, and combo behaviours.
 
 17. `endBattle`, `battleOutcomeText`, and `showBattleResult`
    These explain the reward and why the player won or lost.
@@ -212,9 +223,9 @@ Read it in this order:
 
 Try changing only numbers first:
 
-- Make Fire burn longer.
-- Make Ice freeze longer.
-- Make Storm shoot faster.
+- Make Ashka's Fire burn longer.
+- Make Nyra's Ice freeze longer.
+- Make Raika shoot faster.
 - Increase wall health.
 - Make Fortify add more wall strength.
 - Make Spikes deal more contact damage.
@@ -236,6 +247,6 @@ Next prototype improvements should stay focused on feel:
 - Tune battle length.
 - Tune loot costs and rewards.
 - Adjust `gameSpeed` while testing.
-- Make the Archer feel satisfying without overpowering party members.
+- Make Jeff feel satisfying without overpowering party members.
 - Make the empty party slot visually clear without feeling broken.
 - Improve the between-wave planning screen layout.

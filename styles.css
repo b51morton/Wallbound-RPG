@@ -184,7 +184,6 @@ small {
   background: #d9c7a3;
 }
 
-.lightning .hero-mark,
 .storm .hero-mark {
   background: #ffd166;
 }
@@ -350,6 +349,128 @@ small {
   border-color: #7dd87d;
 }
 
+.debug-toggle {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  min-width: 72px;
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 240, 230, 0.2);
+  background: rgba(13, 17, 14, 0.92);
+  color: #f5f0e6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.manual-upgrade-toggle {
+  bottom: 50px;
+  min-width: 146px;
+}
+
+.debug-toggle.active {
+  border-color: #ffd166;
+}
+
+.combat-debug {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 3;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 7px;
+  width: min(420px, calc(100vw - 16px));
+  overflow: hidden;
+  padding: 10px;
+  border: 1px solid rgba(245, 240, 230, 0.18);
+  border-radius: 8px;
+  background: rgba(10, 13, 11, 0.96);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.36);
+}
+
+.combat-debug.hidden {
+  display: none;
+}
+
+.debug-section {
+  display: grid;
+  gap: 6px;
+}
+
+.debug-summary {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(245, 240, 230, 0.12);
+}
+
+.debug-summary h2,
+.debug-section h2 {
+  margin: 0;
+  color: #ffd166;
+  font-size: 13px;
+}
+
+.debug-summary span,
+.debug-section p,
+.debug-upgrades span {
+  margin: 0;
+  color: #aeb7a6;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.debug-upgrades {
+  max-height: 128px;
+  overflow-y: auto;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(245, 240, 230, 0.12);
+}
+
+.debug-source-list {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.manual-upgrade-picker {
+  display: grid;
+  gap: 10px;
+}
+
+.manual-upgrade-group {
+  display: grid;
+  gap: 6px;
+}
+
+.manual-upgrade-group h2 {
+  margin: 4px 0 0;
+  color: #ffd166;
+  font-size: 13px;
+}
+
+.debug-row {
+  display: grid;
+  gap: 2px;
+  padding: 7px;
+  border: 1px solid rgba(245, 240, 230, 0.1);
+  border-radius: 6px;
+  background: #17201a;
+}
+
+.debug-row strong {
+  font-size: 12px;
+}
+
+.debug-row span,
+.debug-row small {
+  color: #c6d1bd;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
 .upgrade-choice strong {
   font-size: 15px;
 }
@@ -391,5 +512,18 @@ small {
   .wall-mark {
     width: 20px;
     height: 20px;
+  }
+
+  .combat-debug {
+    top: 8px;
+    right: 8px;
+    bottom: 88px;
+    width: calc(100vw - 16px);
+  }
+
+  .manual-upgrade-toggle {
+    left: 8px;
+    right: auto;
+    bottom: 8px;
   }
 }

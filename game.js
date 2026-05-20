@@ -10,11 +10,35 @@ const wallButtons = document.querySelector("#wallButtons");
 const upgradePanel = document.querySelector("#upgradePanel");
 const upgradeTitle = document.querySelector("#upgradeTitle");
 const upgradeChoices = document.querySelector("#upgradeChoices");
+const debugToggle = document.querySelector("#debugToggle");
+const manualUpgradeToggle = document.querySelector("#manualUpgradeToggle");
+const combatDebug = document.querySelector("#combatDebug");
 
 const heroConfig = {
+  archer: {
+    kind: "archer",
+    name: "Jeff",
+    damageType: "Physical",
+    role: "Main Hero",
+    label: "Jeff",
+    shortLabel: "J",
+    description: "Reliable neutral arrow damage.",
+    implemented: true,
+    color: "#d9c7a3",
+    cooldown: 0.82,
+    range: 410,
+    damage: 8,
+    projectileSpeed: 620
+  },
   fire: {
-    label: "Fire",
-    damageType: "fire",
+    kind: "fire",
+    name: "Ashka",
+    damageType: "Fire",
+    role: "Party Member",
+    label: "Ashka",
+    shortLabel: "F",
+    description: "Burns enemies and can graze evasive targets.",
+    implemented: true,
     color: "#f95738",
     cooldown: 0.82,
     range: 430,
@@ -24,8 +48,14 @@ const heroConfig = {
     projectileSpeed: 520
   },
   ice: {
-    label: "Ice",
-    damageType: "ice",
+    kind: "ice",
+    name: "Nyra",
+    damageType: "Ice",
+    role: "Party Member",
+    label: "Nyra",
+    shortLabel: "I",
+    description: "Slows, freezes, and manages pressure.",
+    implemented: true,
     color: "#70d6ff",
     cooldown: 1.05,
     range: 390,
@@ -34,27 +64,30 @@ const heroConfig = {
     slowTime: 1.4,
     projectileSpeed: 470
   },
-  lightning: {
-    label: "Storm",
-    damageType: "storm",
+  storm: {
+    kind: "storm",
+    name: "Raika",
+    damageType: "Storm",
+    role: "Party Member",
+    label: "Raika",
+    shortLabel: "S",
+    description: "Lightning burst, chain damage, and pierce effects.",
+    implemented: true,
     color: "#ffd166",
     cooldown: 0.9,
     range: 420,
     damage: 12,
     projectileSpeed: 650
   },
-  archer: {
-    label: "Archer",
-    damageType: "physical",
-    color: "#d9c7a3",
-    cooldown: 0.82,
-    range: 410,
-    damage: 8,
-    projectileSpeed: 620
-  },
   poison: {
-    label: "Poison",
-    damageType: "poison",
+    kind: "poison",
+    name: "Vessa",
+    damageType: "Poison",
+    role: "Party Member",
+    label: "Vessa",
+    shortLabel: "P",
+    description: "Damage over time, weakening, and attrition pressure.",
+    implemented: true,
     color: "#8bd450",
     cooldown: 0.98,
     range: 400,
@@ -64,8 +97,14 @@ const heroConfig = {
     projectileSpeed: 470
   },
   earth: {
-    label: "Earth",
-    damageType: "earth",
+    kind: "earth",
+    name: "Torren",
+    damageType: "Earth",
+    role: "Party Member",
+    label: "Torren",
+    shortLabel: "E",
+    description: "Breaks armour with heavy impact.",
+    implemented: true,
     color: "#b58b5b",
     cooldown: 1.2,
     range: 360,
@@ -73,24 +112,76 @@ const heroConfig = {
     stunTime: 0.45,
     armourBreakTime: 2.8,
     projectileSpeed: 430
+  },
+  holy: {
+    kind: "holy",
+    name: "Solen",
+    damageType: "Holy",
+    role: "Party Member",
+    label: "Solen",
+    shortLabel: "H",
+    description: "Future defensive support, cleansing, and anti-corruption party member.",
+    implemented: false
+  },
+  shadow: {
+    kind: "shadow",
+    name: "Morvane",
+    damageType: "Shadow",
+    role: "Party Member",
+    label: "Morvane",
+    shortLabel: "M",
+    description: "Future curses, life drain, fear, and enemy debuffs.",
+    implemented: false
+  },
+  arcane: {
+    kind: "arcane",
+    name: "Elowen",
+    damageType: "Arcane",
+    role: "Party Member",
+    label: "Elowen",
+    shortLabel: "A",
+    description: "Future raw magic, resistance piercing, and unstable blasts.",
+    implemented: false
+  },
+  wind: {
+    kind: "wind",
+    name: "Kael",
+    damageType: "Wind",
+    role: "Party Member",
+    label: "Kael",
+    shortLabel: "W",
+    description: "Future knockback, speed manipulation, and pushback.",
+    implemented: false
+  },
+  blood: {
+    kind: "blood",
+    name: "Riven",
+    damageType: "Blood",
+    role: "Party Member",
+    label: "Riven",
+    shortLabel: "B",
+    description: "Future bleed, lifesteal, executes, and wounded-enemy damage.",
+    implemented: false
   }
 };
 
-const partyRosterKinds = ["fire", "ice", "lightning", "poison", "earth"];
-const trainableHeroKinds = partyRosterKinds;
+const partyRosterKinds = ["fire", "ice", "storm", "poison", "earth", "holy", "shadow", "arcane", "wind", "blood"];
+const selectablePartyKinds = partyRosterKinds.filter((kind) => heroConfig[kind].implemented);
+const trainableHeroKinds = selectablePartyKinds;
+const combatStatSources = ["archer", "fire", "ice", "storm", "poison", "earth", "spikes", "wall"];
 
 const damageTypeRoster = {
-  physical: "Reliable neutral damage. Main Hero Archer uses this for now.",
-  fire: "Burn damage over time and future spread effects.",
-  ice: "Freeze, slow, and pressure control.",
-  storm: "Lightning burst, chains, and pierce.",
-  poison: "Attrition, weakening, and damage over time.",
-  holy: "Future defensive support, cleansing, shielding, and anti-corruption damage.",
-  shadow: "Future curses, drain, fear, ramping damage, and debuffs.",
-  arcane: "Future raw magic, resistance piercing, unstable blasts, and random effects.",
-  earth: "Armour break, stun, impact, barriers, and terrain slow.",
-  wind: "Future knockback, speed manipulation, multi-hit slicing, and pushback.",
-  blood: "Future bleed, lifesteal, executes, and wounded-enemy damage."
+  Physical: "Reliable neutral damage. Main Hero Jeff uses this for now.",
+  Fire: "Burn damage over time and future spread effects.",
+  Ice: "Freeze, slow, and pressure control.",
+  Storm: "Lightning burst, chains, and pierce.",
+  Poison: "Attrition, weakening, and damage over time.",
+  Earth: "Armour break, stun, impact, barriers, and terrain slow.",
+  Holy: "Future defensive support, cleansing, shielding, and anti-corruption damage.",
+  Shadow: "Future curses, drain, fear, ramping damage, and debuffs.",
+  Arcane: "Future raw magic, resistance piercing, unstable blasts, and random effects.",
+  Wind: "Future knockback, speed manipulation, multi-hit slicing, and pushback.",
+  Blood: "Future bleed, lifesteal, executes, and wounded-enemy damage."
 };
 
 const enemyConfig = {
@@ -167,53 +258,112 @@ const enemyConfig = {
     color: "#ff8fab",
     armor: 12,
     pattern: "straight",
-    immune: ["lightning"],
+    immune: ["storm"],
     bounce: true
   }
 };
 
 const tempUpgradePool = [
   {
-    tag: "Fire",
-    title: "Fire Spread",
+    tag: "Ashka",
+    title: "Ashka: Fire Spread",
+    source: "fire",
     summary: "Burn jumps to 1 nearby enemy",
-    text: "Fire burn spreads to 1 nearby enemy for 65% burn damage.",
+    text: "Ashka's Fire burn spreads to 1 nearby enemy for 65% burn damage.",
     apply: () => state.temp.fireSpread += 1
   },
   {
-    tag: "Fire",
-    title: "Long Burn",
+    tag: "Ashka",
+    title: "Ashka: Burn Duration",
+    source: "fire",
     summary: "+50% burn duration",
-    text: "Fire damage over time lasts 50% longer this battle.",
+    text: "Ashka's Fire damage over time lasts 50% longer this battle.",
     apply: () => state.temp.fireDotTime *= 1.5
   },
   {
-    tag: "Ice",
-    title: "Deep Freeze",
+    tag: "Nyra",
+    title: "Nyra: Deep Freeze",
+    source: "ice",
     summary: "+50% freeze and slow duration",
-    text: "Ice freeze and slow effects last 50% longer this battle.",
+    text: "Nyra's Ice freeze and slow effects last 50% longer this battle.",
     apply: () => state.temp.iceDuration *= 1.5
   },
   {
-    tag: "Ice",
-    title: "Ice Splash",
+    tag: "Nyra",
+    title: "Nyra: Ice Splash",
+    source: "ice",
     summary: "Hits 2 nearby enemies",
-    text: "Ice also hits up to 2 nearby enemies for 55% damage and applies slow.",
+    text: "Nyra's Ice also hits up to 2 nearby enemies for 55% damage and applies slow.",
     apply: () => state.temp.iceSplash += 2
   },
   {
-    tag: "Storm",
-    title: "Storm Chain",
+    tag: "Raika",
+    title: "Raika: Chain Strike",
+    source: "storm",
     summary: "Bounces to 2 enemies",
-    text: "Lightning jumps to 2 nearby enemies for 72% damage.",
-    apply: () => state.temp.lightningBounces += 2
+    text: "Storm damage jumps to 2 nearby enemies for 72% damage.",
+    apply: () => state.temp.stormBounces += 2
   },
   {
-    tag: "Storm",
-    title: "Storm Pierce",
+    tag: "Raika",
+    title: "Raika: Piercing Bolt",
+    source: "storm",
+    stackId: "piercingBolt",
+    maxStacks: 1,
     summary: "Hits a lane line",
-    text: "Lightning hits enemies in the same lane for 90% damage.",
-    apply: () => state.temp.lightningPierce += 1
+    text: "One-time unlock: Raika's Storm damage hits enemies in the same lane for 90% damage.",
+    apply: () => state.temp.stormPierce = addComboStack("piercingBolt")
+  },
+  {
+    tag: "Vessa",
+    title: "Vessa: Potent Venom",
+    source: "poison",
+    summary: "+25% poison damage",
+    text: "Vessa's Poison damage over time is 25% stronger this battle.",
+    apply: () => state.temp.poisonDamage *= 1.25
+  },
+  {
+    tag: "Vessa",
+    title: "Vessa: Lingering Toxin",
+    source: "poison",
+    summary: "+35% poison duration",
+    text: "Vessa's Poison lasts 35% longer this battle.",
+    apply: () => state.temp.poisonDuration *= 1.35
+  },
+  {
+    tag: "Vessa",
+    title: "Vessa: Toxic Needles",
+    source: "poison",
+    summary: "+18% attack speed",
+    text: "Vessa shoots Poison needles 18% faster this battle.",
+    apply: () => state.temp.poisonAttackSpeed *= 1.18
+  },
+  {
+    tag: "Torren",
+    title: "Torren: Crushing Stone",
+    source: "earth",
+    summary: "+20% Earth impact",
+    text: "Torren's Earth hits deal 20% more damage and impact this battle.",
+    apply: () => state.temp.earthDamage *= 1.2
+  },
+  {
+    tag: "Torren",
+    title: "Torren: Shatter Armour",
+    source: "earth",
+    summary: "Stronger armour break",
+    text: "Torren breaks 35% more armour and armour stays broken longer this battle.",
+    apply: () => {
+      state.temp.earthArmorDamage *= 1.35;
+      state.temp.earthBreakDuration *= 1.25;
+    }
+  },
+  {
+    tag: "Torren",
+    title: "Torren: Heavy Impact",
+    source: "earth",
+    summary: "+35% stun duration",
+    text: "Torren's stuns last 35% longer this battle.",
+    apply: () => state.temp.earthStunDuration *= 1.35
   },
   {
     tag: "All",
@@ -223,17 +373,19 @@ const tempUpgradePool = [
     apply: () => state.temp.attackSpeed *= 1.18
   },
   {
-    tag: "Archer",
-    title: "Sharpened Arrows",
-    summary: "+20% Archer damage",
-    text: "Archer arrows deal 20% more physical damage this battle.",
+    tag: "Jeff",
+    title: "Jeff: Sharpened Arrows",
+    source: "archer",
+    summary: "+20% arrow damage",
+    text: "Jeff's arrows deal 20% more Physical damage this battle.",
     apply: () => state.temp.archerDamage *= 1.2
   },
   {
-    tag: "Archer",
-    title: "Quick Draw",
-    summary: "+18% Archer attack speed",
-    text: "Archer shoots 18% faster this battle.",
+    tag: "Jeff",
+    title: "Jeff: Faster Shots",
+    source: "archer",
+    summary: "+18% attack speed",
+    text: "Jeff shoots arrows 18% faster this battle.",
     apply: () => state.temp.archerAttackSpeed *= 1.18
   },
   {
@@ -246,51 +398,84 @@ const tempUpgradePool = [
   },
   {
     tag: "Combo",
-    title: "Toxic Embers",
+    title: "Ashka + Jeff: Ember Arrows",
+    stackId: "emberArrows",
+    summary: "Archer punishes burn",
+    text: "Each stack makes Jeff's arrows deal +20% damage to burning enemies.",
+    requiresParty: ["archer", "fire"],
+    apply: () => state.temp.archerVsBurning = 1 + addComboStack("emberArrows") * 0.2
+  },
+  {
+    tag: "Combo",
+    title: "Ashka + Vessa: Toxic Flame",
+    stackId: "toxicFlame",
     summary: "Burn boosts Poison",
-    text: "Poison deals 35% more damage to burning enemies.",
+    text: "Each stack makes Vessa's Poison deal +35% damage to burning enemies.",
     requiresParty: ["fire", "poison"],
-    apply: () => state.temp.poisonVsBurning *= 1.35
+    apply: () => state.temp.poisonVsBurning = 1 + addComboStack("toxicFlame") * 0.35
   },
   {
     tag: "Combo",
-    title: "Contagion Spark",
+    title: "Ashka + Vessa: Contagion Spark",
+    stackId: "contagionSpark",
     summary: "Fire spreads Poison",
-    text: "Fire hits on poisoned enemies spread Poison to 1 nearby enemy.",
+    text: "Each stack lets Ashka's Fire hits on poisoned enemies spread Poison to +1 nearby enemy.",
     requiresParty: ["fire", "poison"],
-    apply: () => state.temp.fireSpreadsPoison += 1
+    apply: () => state.temp.fireSpreadsPoison = addComboStack("contagionSpark")
   },
   {
     tag: "Combo",
-    title: "Shatterstone",
+    title: "Nyra + Torren: Frostcrack",
+    stackId: "frostcrack",
     summary: "Earth extends frozen stuns",
-    text: "Earth stuns frozen or slowed enemies 60% longer.",
+    text: "Each stack makes Torren's Earth stuns on frozen or slowed enemies +60% longer.",
     requiresParty: ["ice", "earth"],
-    apply: () => state.temp.earthVsControlled *= 1.6
+    apply: () => state.temp.earthVsControlled = 1 + addComboStack("frostcrack") * 0.6
   },
   {
     tag: "Combo",
-    title: "Marked Target",
+    title: "Nyra + Jeff: Marked Target",
+    stackId: "markedTarget",
     summary: "Archer punishes slow",
-    text: "Archer arrows deal 25% more damage to slowed enemies.",
-    requiresParty: ["ice"],
-    apply: () => state.temp.archerVsSlowed *= 1.25
+    text: "Each stack makes Jeff's arrows deal +25% damage to slowed enemies.",
+    requiresParty: ["archer", "ice"],
+    apply: () => state.temp.archerVsSlowed = 1 + addComboStack("markedTarget") * 0.25
   },
   {
     tag: "Combo",
-    title: "Grounded Arrows",
+    title: "Raika + Jeff: Charged Arrows",
+    stackId: "chargedArrows",
+    summary: "Storm marks targets",
+    text: "Each stack makes Jeff's arrows deal +20% damage to enemies recently hit by Raika.",
+    requiresParty: ["archer", "storm"],
+    apply: () => state.temp.archerVsStormMarked = 1 + addComboStack("chargedArrows") * 0.2
+  },
+  {
+    tag: "Combo",
+    title: "Vessa + Jeff: Venom-Tipped Arrows",
+    stackId: "venomTippedArrows",
+    summary: "Archer punishes Poison",
+    text: "Each stack makes Jeff's arrows deal +20% damage to poisoned enemies.",
+    requiresParty: ["archer", "poison"],
+    apply: () => state.temp.archerVsPoisoned = 1 + addComboStack("venomTippedArrows") * 0.2
+  },
+  {
+    tag: "Combo",
+    title: "Torren + Jeff: Grounded Arrows",
+    stackId: "groundedArrows",
     summary: "Earth helps Archer",
-    text: "Archer deals 30% more damage to armour-broken enemies.",
-    requiresParty: ["earth"],
-    apply: () => state.temp.archerVsBroken *= 1.3
+    text: "Each stack makes Jeff's arrows deal +30% damage to armour-broken enemies.",
+    requiresParty: ["archer", "earth"],
+    apply: () => state.temp.archerVsBroken = 1 + addComboStack("groundedArrows") * 0.3
   },
   {
     tag: "Combo",
-    title: "Conductive Venom",
+    title: "Raika + Vessa: Conductive Venom",
+    stackId: "conductiveVenom",
     summary: "Storm chains farther",
-    text: "Storm chain range is 35% longer when the first target is poisoned.",
-    requiresParty: ["lightning", "poison"],
-    apply: () => state.temp.stormPoisonRange *= 1.35
+    text: "Each stack makes Storm chain range +35% longer when the first target is poisoned.",
+    requiresParty: ["storm", "poison"],
+    apply: () => state.temp.stormPoisonRange = 1 + addComboStack("conductiveVenom") * 0.35
   }
 ];
 
@@ -321,12 +506,12 @@ const state = {
   hits: [],
   heroes: [],
   mainHeroKind: "archer",
-  partyMemberSlots: ["fire", "ice", "lightning", null],
+  partyMemberSlots: ["fire", "ice", "storm", null],
   heroLevels: {
+    archer: 1,
     fire: 1,
     ice: 1,
-    lightning: 1,
-    archer: 1,
+    storm: 1,
     poison: 1,
     earth: 1
   },
@@ -339,8 +524,60 @@ const state = {
   gameTime: performance.now(),
   width: 390,
   height: 620,
-  wallY: 535
+  wallY: 535,
+  manualUpgradeMode: false,
+  combatStats: createCombatStats()
 };
+
+function createCombatStats() {
+  return {
+    visible: false,
+    battleDuration: 0,
+    waveDuration: 0,
+    upgradeHistory: [],
+    dirty: true,
+    battle: createCombatStatBucket(),
+    wave: createCombatStatBucket()
+  };
+}
+
+function createCombatStatBucket() {
+  return Object.fromEntries(combatStatSources.map((source) => [source, createSourceStats()]));
+}
+
+function createSourceStats() {
+  return {
+    shotsFired: 0,
+    hits: 0,
+    misses: 0,
+    nearMisses: 0,
+    directDamage: 0,
+    burnDamage: 0,
+    grazeBurnDamage: 0,
+    poisonDamage: 0,
+    chainDamage: 0,
+    spikeDamage: 0,
+    armorDamage: 0,
+    comboDamage: 0,
+    assistDamage: 0,
+    burnsApplied: 0,
+    grazeBurnsApplied: 0,
+    freezesApplied: 0,
+    slowsApplied: 0,
+    slowTimeApplied: 0,
+    poisonApplications: 0,
+    armorBreaks: 0,
+    stunsApplied: 0,
+    pierceHits: 0,
+    spikeHits: 0,
+    comboTriggers: 0,
+    comboTargets: 0,
+    assistTriggers: 0,
+    comboControlTime: 0,
+    assistControlTime: 0,
+    totalDamage: 0
+  };
+}
 
 function freshTempUpgrades() {
   return {
@@ -348,18 +585,173 @@ function freshTempUpgrades() {
     fireDotTime: 1,
     iceDuration: 1,
     iceSplash: 0,
-    lightningBounces: 0,
-    lightningPierce: 0,
+    stormBounces: 0,
+    stormPierce: 0,
     attackSpeed: 1,
     archerDamage: 1,
     archerAttackSpeed: 1,
+    archerVsBurning: 1,
+    archerVsPoisoned: 1,
+    archerVsStormMarked: 1,
+    poisonDamage: 1,
+    poisonDuration: 1,
+    poisonAttackSpeed: 1,
+    earthDamage: 1,
+    earthArmorDamage: 1,
+    earthBreakDuration: 1,
+    earthStunDuration: 1,
     poisonVsBurning: 1,
     fireSpreadsPoison: 0,
     earthVsControlled: 1,
     archerVsSlowed: 1,
     archerVsBroken: 1,
-    stormPoisonRange: 1
+    stormPoisonRange: 1,
+    comboStacks: {}
   };
+}
+
+function addComboStack(stackId) {
+  state.temp.comboStacks[stackId] = (state.temp.comboStacks[stackId] || 0) + 1;
+  return state.temp.comboStacks[stackId];
+}
+
+function comboStackCount(stackId) {
+  return state.temp.comboStacks[stackId] || 0;
+}
+
+function resetCombatBattleStats(now = state.gameTime) {
+  const visible = state.combatStats?.visible || false;
+  state.combatStats = createCombatStats();
+  state.combatStats.visible = visible;
+  updateDebugVisibility();
+}
+
+function resetCombatWaveStats(now = state.gameTime) {
+  state.combatStats.wave = createCombatStatBucket();
+  state.combatStats.waveDuration = 0;
+  state.combatStats.dirty = true;
+  refreshCombatDebug();
+}
+
+function addActiveCombatTime(dt) {
+  const stats = state.combatStats;
+  if (!stats || !state.waveActive) return;
+  stats.waveDuration += dt;
+  stats.battleDuration += dt;
+  stats.dirty = true;
+}
+
+function recordUpgradeChoice(waveNumber, upgrade) {
+  if (!state.combatStats) return;
+  state.combatStats.upgradeHistory.push({
+    wave: waveNumber,
+    title: upgrade.title,
+    stack: upgrade.stackId ? comboStackCount(upgrade.stackId) : null,
+    maxStacks: upgrade.maxStacks || null
+  });
+  state.combatStats.dirty = true;
+  refreshCombatDebug();
+}
+
+function toggleManualUpgradeMode() {
+  state.manualUpgradeMode = !state.manualUpgradeMode;
+  updateManualUpgradeToggle();
+  if (state.combatStats) state.combatStats.dirty = true;
+  refreshCombatDebug();
+}
+
+function updateManualUpgradeToggle() {
+  if (!manualUpgradeToggle) return;
+  manualUpgradeToggle.classList.toggle("active", state.manualUpgradeMode);
+  manualUpgradeToggle.setAttribute("aria-pressed", String(state.manualUpgradeMode));
+  manualUpgradeToggle.textContent = state.manualUpgradeMode ? "Manual Upgrades On" : "Manual Upgrades Off";
+}
+
+function recordShot(source) {
+  mutateCombatStats(source, (stats) => {
+    stats.shotsFired += 1;
+  });
+}
+
+function recordHit(source) {
+  mutateCombatStats(source, (stats) => {
+    stats.hits += 1;
+  });
+}
+
+function recordMiss(source) {
+  mutateCombatStats(source, (stats) => {
+    stats.misses += 1;
+  });
+}
+
+function recordNearMiss(source) {
+  mutateCombatStats(source, (stats) => {
+    stats.nearMisses += 1;
+  });
+}
+
+function recordDamage(source, amount, category = "directDamage") {
+  if (!Number.isFinite(amount) || amount <= 0) return;
+  mutateCombatStats(source, (stats) => {
+    if (!(category in stats)) stats[category] = 0;
+    stats[category] += amount;
+    stats.totalDamage += amount;
+  });
+}
+
+function recordAssistDamage(source, amount) {
+  if (!Number.isFinite(amount) || amount <= 0) return;
+  mutateCombatStats(source, (stats) => {
+    stats.assistDamage += amount;
+  });
+}
+
+function recordStatus(source, statusKind, amount = 1) {
+  mutateCombatStats(source, (stats) => {
+    if (!(statusKind in stats)) stats[statusKind] = 0;
+    stats[statusKind] += amount;
+  });
+}
+
+function recordArmorBreak(source) {
+  recordStatus(source, "armorBreaks");
+}
+
+function recordSpikeDamage(amount) {
+  recordDamage("spikes", amount, "spikeDamage");
+  recordStatus("spikes", "spikeHits");
+}
+
+function applyTrackedDamage(enemy, source, amount, category) {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  enemy.hp -= amount;
+  recordDamage(source, amount, category);
+  return amount;
+}
+
+function applyTrackedDirectDamage(enemy, source, amount, now, category = "directDamage") {
+  const damage = directDamageAfterArmor(enemy, amount, now);
+  return applyTrackedDamage(enemy, source, damage, category);
+}
+
+function recordComboTrigger(source, assistSource = null) {
+  recordStatus(source, "comboTriggers");
+  if (assistSource) recordStatus(assistSource, "assistTriggers");
+}
+
+function mutateCombatStats(source, mutate) {
+  if (!state.combatStats || !source) return;
+  ensureCombatSource(source);
+  mutate(state.combatStats.wave[source]);
+  mutate(state.combatStats.battle[source]);
+  state.combatStats.dirty = true;
+  refreshCombatDebug();
+}
+
+function ensureCombatSource(source) {
+  if (!state.combatStats.wave[source]) state.combatStats.wave[source] = createSourceStats();
+  if (!state.combatStats.battle[source]) state.combatStats.battle[source] = createSourceStats();
 }
 
 function resizeCanvas() {
@@ -412,13 +804,13 @@ function showPartySelection() {
   picker.className = "party-picker";
   const pickButtons = [];
 
-  for (const kind of partyRosterKinds) {
+  for (const kind of selectablePartyKinds) {
     const config = heroConfig[kind];
     const button = document.createElement("button");
     button.type = "button";
     button.className = "party-pick";
     button.dataset.hero = kind;
-    setChoiceContent(button, config.label, [damageTypeRoster[config.damageType], selected.has(kind) ? "Selected" : "Tap to add"]);
+    setChoiceContent(button, config.name, [`${config.damageType} ${config.role}`, selected.has(kind) ? "Selected" : "Tap to add"]);
     button.addEventListener("click", () => {
       if (selected.has(kind)) {
         selected.delete(kind);
@@ -435,7 +827,7 @@ function showPartySelection() {
   upgradeChoices.append(picker);
   refreshPartyPickerButtons(pickButtons, selected);
 
-  addChoice("Preview Wave 1", ["Main Hero: Archer stays in the centre.", "Choose up to 4 party members, then preview the first wave."], () => {
+  addChoice("Preview Wave 1", ["Main Hero: Jeff stays in the centre.", "Choose up to 4 party members, then preview the first wave."], () => {
     state.partyMemberSlots = [...selected].slice(0, 4);
     while (state.partyMemberSlots.length < 4) {
       state.partyMemberSlots.push(null);
@@ -455,8 +847,9 @@ function refreshPartyPickerButtons(buttons, selected) {
     const isSelected = selected.has(kind);
     button.classList.toggle("selected", isSelected);
     button.disabled = !isSelected && selected.size >= 4;
-    setChoiceContent(button, config.label, [
-      damageTypeRoster[config.damageType],
+    setChoiceContent(button, config.name, [
+      `${config.damageType} ${config.role}`,
+      config.description,
       isSelected ? "Selected" : button.disabled ? "Party full" : "Tap to add"
     ]);
   }
@@ -464,6 +857,10 @@ function refreshPartyPickerButtons(buttons, selected) {
 
 function selectedPartyKinds() {
   return state.partyMemberSlots.filter(Boolean);
+}
+
+function activeCharacterKinds() {
+  return new Set([state.mainHeroKind, ...selectedPartyKinds()].filter(Boolean));
 }
 
 function prepareBattleRun() {
@@ -483,6 +880,7 @@ function prepareBattleRun() {
   state.projectiles = [];
   state.beams = [];
   state.hits = [];
+  resetCombatBattleStats(state.gameTime);
 }
 
 function beginWave(waveNumber) {
@@ -496,6 +894,7 @@ function beginWave(waveNumber) {
   state.spawnCount = 0;
   state.enemiesToSpawn = enemyCountForWave(state.wave, state.battle);
   state.timeUntilNextSpawn = 0;
+  resetCombatWaveStats(state.gameTime);
   battleButton.disabled = true;
   battleButton.textContent = `Wave ${state.wave}/${state.wavesPerBattle}`;
   updateHud();
@@ -592,12 +991,24 @@ function updateEnemies(dt, now) {
     const enemy = state.enemies[i];
 
     if ((enemy.burnUntil ?? 0) > now && !hasImmunity(enemy, "fire")) {
-      enemy.hp -= (enemy.burnDps ?? 0) * dt;
+      applyTrackedDamage(enemy, enemy.burnSource || "fire", (enemy.burnDps ?? 0) * dt, enemy.burnCategory || "burnDamage");
     }
 
     if ((enemy.poisonUntil ?? 0) > now) {
-      const burningMultiplier = (enemy.burnUntil ?? 0) > now ? state.temp.poisonVsBurning : 1;
-      enemy.hp -= (enemy.poisonDps ?? 0) * burningMultiplier * dt;
+      const poisonSource = enemy.poisonSource || "poison";
+      const poisonCategory = enemy.poisonCategory || "poisonDamage";
+      const basePoisonDamage = (enemy.poisonDps ?? 0) * dt;
+      applyTrackedDamage(enemy, poisonSource, basePoisonDamage, poisonCategory);
+
+      if ((enemy.burnUntil ?? 0) > now && state.temp.poisonVsBurning > 1) {
+        const comboDamage = basePoisonDamage * (state.temp.poisonVsBurning - 1);
+        applyTrackedDamage(enemy, poisonSource, comboDamage, "comboDamage");
+        recordAssistDamage("fire", comboDamage);
+      }
+
+      if (poisonCategory === "comboDamage") {
+        recordAssistDamage("fire", basePoisonDamage);
+      }
     }
 
     if (enemy.hp <= 0) {
@@ -640,7 +1051,7 @@ function updateEnemies(dt, now) {
       if (enemy.bounce && enemy.bounceCooldown <= 0) {
         state.brawlerHits += 1;
         enemy.y = state.wallY - 70;
-        enemy.hp -= 8;
+        applyTrackedDamage(enemy, "wall", 8, "directDamage");
         enemy.bounceCooldown = 1.1;
         makeHit(enemy.x, state.wallY, "#ff8fab", 34);
       } else {
@@ -701,6 +1112,7 @@ function applyWallContact(enemy) {
   if (spikeDamage <= 0 || enemy.ranged) return false;
 
   enemy.hp -= spikeDamage;
+  recordSpikeDamage(spikeDamage);
   makeHit(enemy.x, state.wallY, "#c6d1bd", 28);
   return enemy.hp <= 0;
 }
@@ -739,9 +1151,10 @@ function updateHeroes(dt, now) {
 
     const level = state.heroLevels[hero.kind];
     hero.cooldownLeft = config.cooldown / heroAttackSpeed(hero.kind) / (1 + (level - 1) * 0.06);
+    recordShot(hero.kind);
 
-    if (hero.kind === "lightning" && state.temp.lightningPierce > 0) {
-      castLightningPierce(hero, target, level, now);
+    if (hero.kind === "storm" && state.temp.stormPierce > 0) {
+      castStormPierce(hero, target, level, now);
       continue;
     }
 
@@ -752,7 +1165,7 @@ function updateHeroes(dt, now) {
       target,
       speed: config.projectileSpeed,
       color: config.color,
-      radius: hero.kind === "lightning" || hero.kind === "archer" ? 4 : 5
+      radius: hero.kind === "storm" || hero.kind === "archer" ? 4 : 5
     });
   }
 }
@@ -799,6 +1212,7 @@ function updateProjectiles(dt, now) {
     const projectile = state.projectiles[i];
 
     if (!state.enemies.includes(projectile.target)) {
+      recordMiss(projectile.kind);
       state.projectiles.splice(i, 1);
       continue;
     }
@@ -830,10 +1244,24 @@ function applyHeroHit(kind, target, now, source) {
 
   const config = heroConfig[kind];
   const level = state.heroLevels[kind];
-  const damageScale = (1 + (level - 1) * 0.18) * heroDamageMultiplier(kind) * targetDamageMultiplier(kind, target);
+  const baseDamageScale = (1 + (level - 1) * 0.18) * heroDamageMultiplier(kind);
+  const targetMultiplier = targetDamageMultiplier(kind, target);
+  const damageScale = baseDamageScale * targetMultiplier;
+  recordHit(kind);
 
   if (!hasImmunity(target, kind)) {
-    target.hp -= directDamageAfterArmor(target, config.damage * damageScale, now);
+    const baseDamage = directDamageAfterArmor(target, config.damage * baseDamageScale, now);
+    const totalDamage = directDamageAfterArmor(target, config.damage * damageScale, now);
+    const comboDamage = Math.max(0, totalDamage - baseDamage);
+    applyTrackedDamage(target, kind, totalDamage - comboDamage, "directDamage");
+    if (comboDamage > 0) {
+      applyTrackedDamage(target, kind, comboDamage, "comboDamage");
+      const assistSources = targetComboAssistSources(kind, target);
+      for (const assistSource of assistSources) {
+        recordAssistDamage(assistSource, comboDamage / assistSources.length);
+        recordComboTrigger(kind, assistSource);
+      }
+    }
   } else {
     makeHit(target.x, target.y, "#ffffff", 18);
     return;
@@ -842,6 +1270,9 @@ function applyHeroHit(kind, target, now, source) {
   if (kind === "fire") {
     target.burnUntil = now + config.dotTime * state.temp.fireDotTime * 1000;
     target.burnDps = (config.dotDamage * damageScale) / config.dotTime;
+    target.burnSource = "fire";
+    target.burnCategory = "burnDamage";
+    recordStatus("fire", "burnsApplied");
     spreadFire(target, now, damageScale);
     spreadPoisonFromFire(target, now, damageScale);
   }
@@ -851,8 +1282,9 @@ function applyHeroHit(kind, target, now, source) {
     splashIce(target, now, damageScale);
   }
 
-  if (kind === "lightning") {
-    chainLightning(target, now, damageScale, source);
+  if (kind === "storm") {
+    markStormForArcher(target, now);
+    chainStorm(target, now, damageScale, source);
   }
 
   if (kind === "poison") {
@@ -879,7 +1311,9 @@ function projectileMissedEvasiveTarget(projectile, now) {
 
 function handleProjectileMiss(projectile, now) {
   const target = projectile.target;
+  recordMiss(projectile.kind);
   if (projectile.kind === "fire" && projectile.evasiveNearMiss && state.enemies.includes(target)) {
+    recordNearMiss("fire");
     applyFireGrazeBurn(target, now);
     makeHit(target.x, target.y, heroConfig.fire.color, 12);
     return;
@@ -895,6 +1329,9 @@ function isDirectProjectile(kind) {
 function applyFireGrazeBurn(enemy, now) {
   enemy.burnUntil = now + heroConfig.fire.dotTime * state.temp.fireDotTime * 650;
   enemy.burnDps = heroConfig.fire.dotDamage * 0.3 / heroConfig.fire.dotTime;
+  enemy.burnSource = "fire";
+  enemy.burnCategory = "grazeBurnDamage";
+  recordStatus("fire", "grazeBurnsApplied");
 }
 
 function directDamageAfterArmor(enemy, amount, now) {
@@ -907,18 +1344,35 @@ function hasActiveArmor(enemy, now = state.gameTime) {
 }
 
 function heroAttackSpeed(kind) {
-  return state.temp.attackSpeed * (kind === "archer" ? state.temp.archerAttackSpeed : 1);
+  let speed = state.temp.attackSpeed;
+  if (kind === "archer") speed *= state.temp.archerAttackSpeed;
+  if (kind === "poison") speed *= state.temp.poisonAttackSpeed;
+  return speed;
 }
 
 function heroDamageMultiplier(kind) {
-  return kind === "archer" ? state.temp.archerDamage : 1;
+  if (kind === "archer") return state.temp.archerDamage;
+  if (kind === "earth") return state.temp.earthDamage;
+  return 1;
 }
 
 function targetDamageMultiplier(kind, target) {
   let multiplier = 1;
 
+  if (kind === "archer" && (target.burnUntil ?? 0) > state.gameTime) {
+    multiplier *= state.temp.archerVsBurning;
+  }
+
   if (kind === "archer" && (target.slowedUntil ?? 0) > state.gameTime) {
     multiplier *= state.temp.archerVsSlowed;
+  }
+
+  if (kind === "archer" && (target.stormMarkedUntil ?? 0) > state.gameTime) {
+    multiplier *= state.temp.archerVsStormMarked;
+  }
+
+  if (kind === "archer" && (target.poisonUntil ?? 0) > state.gameTime) {
+    multiplier *= state.temp.archerVsPoisoned;
   }
 
   if (kind === "archer" && (target.armourBrokenUntil ?? 0) > state.gameTime) {
@@ -926,6 +1380,32 @@ function targetDamageMultiplier(kind, target) {
   }
 
   return multiplier;
+}
+
+function targetComboAssistSources(kind, target) {
+  const sources = [];
+
+  if (kind === "archer" && (target.burnUntil ?? 0) > state.gameTime && state.temp.archerVsBurning > 1) {
+    sources.push("fire");
+  }
+
+  if (kind === "archer" && (target.slowedUntil ?? 0) > state.gameTime && state.temp.archerVsSlowed > 1) {
+    sources.push("ice");
+  }
+
+  if (kind === "archer" && (target.stormMarkedUntil ?? 0) > state.gameTime && state.temp.archerVsStormMarked > 1) {
+    sources.push("storm");
+  }
+
+  if (kind === "archer" && (target.poisonUntil ?? 0) > state.gameTime && state.temp.archerVsPoisoned > 1) {
+    sources.push("poison");
+  }
+
+  if (kind === "archer" && (target.armourBrokenUntil ?? 0) > state.gameTime && state.temp.archerVsBroken > 1) {
+    sources.push("earth");
+  }
+
+  return sources;
 }
 
 function spreadFire(origin, now, damageScale) {
@@ -937,9 +1417,12 @@ function spreadFire(origin, now, damageScale) {
     .slice(0, state.temp.fireSpread);
 
   for (const enemy of candidates) {
-    enemy.hp -= directDamageAfterArmor(enemy, 4 * damageScale, now);
+    applyTrackedDirectDamage(enemy, "fire", 4 * damageScale, now);
     enemy.burnUntil = now + heroConfig.fire.dotTime * state.temp.fireDotTime * 900;
     enemy.burnDps = (heroConfig.fire.dotDamage * damageScale * 0.65) / heroConfig.fire.dotTime;
+    enemy.burnSource = "fire";
+    enemy.burnCategory = "burnDamage";
+    recordStatus("fire", "burnsApplied");
     makeBeam(origin, enemy, heroConfig.fire.color, 0.18, 4);
   }
 }
@@ -953,30 +1436,61 @@ function spreadPoisonFromFire(origin, now, damageScale) {
     .slice(0, state.temp.fireSpreadsPoison);
 
   for (const enemy of candidates) {
-    enemy.poisonUntil = now + heroConfig.poison.poisonTime * 800;
-    enemy.poisonDps = (heroConfig.poison.poisonDamage * damageScale * 0.45) / heroConfig.poison.poisonTime;
+    enemy.poisonUntil = now + heroConfig.poison.poisonTime * state.temp.poisonDuration * 800;
+    enemy.poisonDps = (heroConfig.poison.poisonDamage * damageScale * state.temp.poisonDamage * 0.45) / heroConfig.poison.poisonTime;
+    enemy.poisonSource = "poison";
+    enemy.poisonCategory = "comboDamage";
+    recordStatus("poison", "poisonApplications");
+    recordComboTrigger("poison", "fire");
+    recordStatus("poison", "comboTargets");
+    recordStatus("fire", "assistTriggers");
     makeBeam(origin, enemy, heroConfig.poison.color, 0.14, 3);
   }
 }
 
 function freezeEnemy(enemy, now) {
   if (hasImmunity(enemy, "ice")) return;
-  enemy.frozenUntil = now + heroConfig.ice.freezeTime * state.temp.iceDuration * 1000;
-  enemy.slowedUntil = now + heroConfig.ice.slowTime * state.temp.iceDuration * 1000;
+  const freezeMs = heroConfig.ice.freezeTime * state.temp.iceDuration * 1000;
+  const slowMs = heroConfig.ice.slowTime * state.temp.iceDuration * 1000;
+  enemy.frozenUntil = now + freezeMs;
+  enemy.slowedUntil = now + slowMs;
   enemy.slowAmount = 0.38;
+  recordStatus("ice", "freezesApplied");
+  recordStatus("ice", "slowsApplied");
+  recordStatus("ice", "slowTimeApplied", slowMs / 1000);
 }
 
 function poisonEnemy(enemy, now, damageScale) {
-  enemy.poisonUntil = now + heroConfig.poison.poisonTime * 1000;
-  enemy.poisonDps = (heroConfig.poison.poisonDamage * damageScale) / heroConfig.poison.poisonTime;
+  const poisonTime = heroConfig.poison.poisonTime * state.temp.poisonDuration;
+  enemy.poisonUntil = now + poisonTime * 1000;
+  enemy.poisonDps = (heroConfig.poison.poisonDamage * damageScale * state.temp.poisonDamage) / heroConfig.poison.poisonTime;
+  enemy.poisonSource = "poison";
+  enemy.poisonCategory = "poisonDamage";
+  recordStatus("poison", "poisonApplications");
+  if ((enemy.burnUntil ?? 0) > now && state.temp.poisonVsBurning > 1) {
+    recordComboTrigger("poison", "fire");
+  }
 }
 
 function earthImpact(enemy, now, damageScale) {
-  enemy.armor = Math.max(0, (enemy.armor ?? 0) - 8 * damageScale);
-  enemy.armourBrokenUntil = now + heroConfig.earth.armourBreakTime * 1000;
+  const oldArmor = enemy.armor ?? 0;
+  const armorDamage = Math.min(oldArmor, 8 * damageScale * state.temp.earthArmorDamage);
+  const hadActiveArmor = hasActiveArmor(enemy, now);
+  enemy.armor = Math.max(0, oldArmor - 8 * damageScale * state.temp.earthArmorDamage);
+  enemy.armourBrokenUntil = now + heroConfig.earth.armourBreakTime * state.temp.earthBreakDuration * 1000;
+  if (armorDamage > 0) recordDamage("earth", armorDamage, "armorDamage");
+  if (hadActiveArmor) recordArmorBreak("earth");
   const controlled = (enemy.frozenUntil ?? 0) > now || (enemy.slowedUntil ?? 0) > now;
   const stunMultiplier = controlled ? state.temp.earthVsControlled : 1;
-  enemy.stunnedUntil = now + heroConfig.earth.stunTime * stunMultiplier * 700;
+  const baseStunSeconds = heroConfig.earth.stunTime * state.temp.earthStunDuration * 0.7;
+  if (controlled && state.temp.earthVsControlled > 1) {
+    const bonusStunSeconds = baseStunSeconds * (state.temp.earthVsControlled - 1);
+    recordComboTrigger("earth", "ice");
+    recordStatus("earth", "comboControlTime", bonusStunSeconds);
+    recordStatus("ice", "assistControlTime", bonusStunSeconds);
+  }
+  enemy.stunnedUntil = now + baseStunSeconds * stunMultiplier * 1000;
+  recordStatus("earth", "stunsApplied");
 }
 
 function splashIce(origin, now, damageScale) {
@@ -988,52 +1502,74 @@ function splashIce(origin, now, damageScale) {
     .slice(0, state.temp.iceSplash);
 
   for (const enemy of candidates) {
-    enemy.hp -= directDamageAfterArmor(enemy, heroConfig.ice.damage * damageScale * 0.55, now);
+    applyTrackedDirectDamage(enemy, "ice", heroConfig.ice.damage * damageScale * 0.55, now);
     freezeEnemy(enemy, now);
     makeBeam(origin, enemy, heroConfig.ice.color, 0.16, 4);
   }
 }
 
-function chainLightning(origin, now, damageScale, source) {
-  if (state.temp.lightningBounces <= 0) return;
+function chainStorm(origin, now, damageScale, source, chainDamageScale = 1) {
+  if (state.temp.stormBounces <= 0) return;
 
   let current = origin;
   const hit = new Set([origin]);
-  const chainRange = 115 * ((origin.poisonUntil ?? 0) > now ? state.temp.stormPoisonRange : 1);
+  const baseChainRange = 115;
+  const poisonComboActive = (origin.poisonUntil ?? 0) > now && state.temp.stormPoisonRange > 1;
+  const chainRange = baseChainRange * (poisonComboActive ? state.temp.stormPoisonRange : 1);
 
-  for (let i = 0; i < state.temp.lightningBounces; i += 1) {
+  for (let i = 0; i < state.temp.stormBounces; i += 1) {
     const next = state.enemies
-      .filter((enemy) => !hit.has(enemy) && !hasImmunity(enemy, "lightning") && distance(enemy, current) < chainRange)
+      .filter((enemy) => !hit.has(enemy) && !hasImmunity(enemy, "storm") && distance(enemy, current) < chainRange)
       .sort((a, b) => distance(a, current) - distance(b, current))[0];
 
     if (!next) break;
-    next.hp -= directDamageAfterArmor(next, heroConfig.lightning.damage * damageScale * 0.72, now);
-    makeBeam(current, next, heroConfig.lightning.color, 0.16, 3);
+    const chainDistance = distance(next, current);
+    const comboEnabledHit = poisonComboActive && chainDistance > baseChainRange;
+    const chainDamage = heroConfig.storm.damage * damageScale * 0.72 * chainDamageScale;
+    applyTrackedDirectDamage(next, "storm", chainDamage, now, comboEnabledHit ? "comboDamage" : "chainDamage");
+    if (comboEnabledHit) {
+      recordAssistDamage("poison", directDamageAfterArmor(next, chainDamage, now));
+      recordComboTrigger("storm", "poison");
+    }
+    markStormForArcher(next, now);
+    makeBeam(current, next, heroConfig.storm.color, 0.16, 3);
     hit.add(next);
     current = next;
   }
 
   if (source) {
-    makeBeam({ x: source.x, y: source.y }, origin, heroConfig.lightning.color, 0.1, 3);
+    makeBeam({ x: source.x, y: source.y }, origin, heroConfig.storm.color, 0.1, 3);
   }
 }
 
-function castLightningPierce(hero, target, level, now) {
+function markStormForArcher(enemy, now) {
+  if (state.temp.archerVsStormMarked <= 1) return;
+  enemy.stormMarkedUntil = now + 2200;
+}
+
+function castStormPierce(hero, target, level, now) {
   const damageScale = 1 + (level - 1) * 0.18;
-  const laneWidth = 30 + state.temp.lightningPierce * 10;
+  const laneWidth = 30 + state.temp.stormPierce * 10;
   const end = { x: target.x, y: -20 };
-  makeBeam(hero, end, heroConfig.lightning.color, 0.16, 3);
+  let hits = 0;
+  makeBeam(hero, end, heroConfig.storm.color, 0.16, 3);
 
   for (const enemy of state.enemies) {
-    if (hasImmunity(enemy, "lightning")) continue;
+    if (hasImmunity(enemy, "storm")) continue;
     if (Math.abs(enemy.x - target.x) < laneWidth && enemy.y <= hero.y && enemy.y >= -20) {
-      enemy.hp -= directDamageAfterArmor(enemy, heroConfig.lightning.damage * damageScale * 0.9, now);
-      makeHit(enemy.x, enemy.y, heroConfig.lightning.color, 16);
+      hits += 1;
+      recordHit("storm");
+      recordStatus("storm", "pierceHits");
+      applyTrackedDirectDamage(enemy, "storm", heroConfig.storm.damage * damageScale * 0.9, now);
+      markStormForArcher(enemy, now);
+      makeHit(enemy.x, enemy.y, heroConfig.storm.color, 16);
     }
   }
 
-  if (state.temp.lightningBounces > 0) {
-    chainLightning(target, now, damageScale);
+  if (hits === 0) recordMiss("storm");
+
+  if (state.temp.stormBounces > 0) {
+    chainStorm(target, now, damageScale, null, 0.55);
   }
 }
 
@@ -1096,27 +1632,36 @@ function showTempUpgradeChoices(nextWaveNumber) {
   upgradeChoices.append(buildWavePreview(nextWaveNumber));
 
   const availableUpgrades = tempUpgradePool.filter((upgrade) => upgradeAvailable(upgrade));
-  const choices = shuffle([...availableUpgrades]).slice(0, 3);
+  const choices = state.manualUpgradeMode ? availableUpgrades : shuffle([...availableUpgrades]).slice(0, 3);
   const upgradeButtons = [];
   let selectedUpgrade = null;
 
-  for (const upgrade of choices) {
-    const upgradeButton = addChoice(`${upgrade.tag}: ${upgrade.title}`, [`Role: ${upgrade.summary}`, upgrade.text], () => {
-      selectedUpgrade = upgrade;
-      for (const button of upgradeButtons) {
-        button.classList.toggle("selected", button === upgradeButton);
-      }
-      startButton.disabled = false;
-      setChoiceContent(startButton, `Start Wave ${nextWaveNumber}`, [`Selected: ${upgrade.title}`, "You can still choose a different upgrade before starting."]);
-      updateHud();
-    });
-    upgradeButtons.push(upgradeButton);
+  const chooseUpgrade = (upgrade, upgradeButton) => {
+    selectedUpgrade = upgrade;
+    for (const button of upgradeButtons) {
+      button.classList.toggle("selected", button === upgradeButton);
+    }
+    startButton.disabled = false;
+    setChoiceContent(startButton, `Start Wave ${nextWaveNumber}`, [`Selected: ${upgrade.title}`, "You can still choose a different upgrade before starting."]);
+    updateHud();
+  };
+
+  if (state.manualUpgradeMode) {
+    upgradeChoices.append(buildManualUpgradePicker(choices, upgradeButtons, chooseUpgrade));
+  } else {
+    for (const upgrade of choices) {
+      const upgradeButton = addChoice(`${upgrade.tag}: ${upgrade.title}`, [`Role: ${upgrade.summary}`, upgrade.text], () => {
+        chooseUpgrade(upgrade, upgradeButton);
+      });
+      upgradeButtons.push(upgradeButton);
+    }
   }
 
   const startButton = addChoice(`Start Wave ${nextWaveNumber}`, ["Choose one temporary upgrade first.", "The preview above shows what is coming."], () => {
     if (!selectedUpgrade) return;
 
     selectedUpgrade.apply();
+    recordUpgradeChoice(nextWaveNumber, selectedUpgrade);
     upgradePanel.classList.add("hidden");
     beginWave(nextWaveNumber);
     updateHud();
@@ -1128,12 +1673,66 @@ function showTempUpgradeChoices(nextWaveNumber) {
   updateHud();
 }
 
+function buildManualUpgradePicker(upgrades, upgradeButtons, onChoose) {
+  const picker = document.createElement("div");
+  picker.className = "manual-upgrade-picker";
+
+  const groups = new Map();
+  for (const upgrade of upgrades) {
+    const group = manualUpgradeGroup(upgrade);
+    if (!groups.has(group)) groups.set(group, []);
+    groups.get(group).push(upgrade);
+  }
+
+  for (const group of manualUpgradeGroupOrder()) {
+    const groupUpgrades = groups.get(group);
+    if (!groupUpgrades?.length) continue;
+
+    const section = document.createElement("section");
+    section.className = "manual-upgrade-group";
+
+    const heading = document.createElement("h2");
+    heading.textContent = group;
+    section.append(heading);
+
+    for (const upgrade of groupUpgrades) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "upgrade-choice";
+      setChoiceContent(button, `${upgrade.tag}: ${upgrade.title}`, [`Role: ${upgrade.summary}`, upgrade.text]);
+      button.addEventListener("click", () => onChoose(upgrade, button));
+      section.append(button);
+      upgradeButtons.push(button);
+    }
+
+    picker.append(section);
+  }
+
+  return picker;
+}
+
+function manualUpgradeGroup(upgrade) {
+  if (upgrade.source === "archer") return "Jeff";
+  if (upgrade.source && heroConfig[upgrade.source]) return heroConfig[upgrade.source].name;
+  if (upgrade.requiresParty) return "Combo";
+  if (upgrade.tag === "Wall") return "Wall";
+  if (upgrade.tag === "All") return "All";
+  return upgrade.tag;
+}
+
+function manualUpgradeGroupOrder() {
+  return ["Jeff", "Ashka", "Nyra", "Raika", "Vessa", "Torren", "Combo", "Wall", "All"];
+}
+
 function upgradeAvailable(upgrade) {
   if (upgrade.requiresWallDamage && state.wall >= state.maxWall) return false;
+  if (upgrade.maxStacks && upgrade.stackId && comboStackCount(upgrade.stackId) >= upgrade.maxStacks) return false;
+
+  const active = activeCharacterKinds();
+  if (upgrade.source && !active.has(upgrade.source)) return false;
   if (!upgrade.requiresParty) return true;
 
-  const selected = new Set(selectedPartyKinds());
-  return upgrade.requiresParty.every((kind) => selected.has(kind));
+  return upgrade.requiresParty.every((kind) => active.has(kind));
 }
 
 function showWavePreview(waveNumber) {
@@ -1215,7 +1814,7 @@ function enemyTraitText(enemy) {
   if (enemy.bounce) traits.push("heavy wall brawler");
   if ((enemy.armor ?? 0) > 0) traits.push("armoured");
   for (const immunity of enemyImmunities(enemy)) {
-    traits.push(`resists ${heroConfig[immunity]?.label || immunity}`);
+    traits.push(`resists ${heroConfig[immunity]?.damageType || immunity}`);
   }
 
   return traits.length ? traits.join(", ") : "straight melee";
@@ -1264,7 +1863,7 @@ function battleOutcomeText(won, reward, clearBonus, completedPrototype) {
 function battleLesson(won, meleeHits) {
   if (state.rangedHits >= meleeHits && state.rangedHits >= 3) {
     return won
-      ? "Lesson: ranged enemies dealt steady safe damage; faster Storm or Ice control can reduce that pressure."
+      ? "Lesson: ranged enemies dealt steady safe damage; faster Raika attacks or Nyra control can reduce that pressure."
       : "Lesson: ranged enemies dealt repeated damage from safety; consider faster attacks or more control.";
   }
 
@@ -1276,7 +1875,7 @@ function battleLesson(won, meleeHits) {
 
   if (meleeHits >= 5) {
     return won
-      ? "Lesson: many melee enemies reached the wall; area upgrades like Fire Spread or Ice Splash help clear groups."
+      ? "Lesson: many melee enemies reached the wall; area upgrades like Ashka: Fire Spread or Nyra: Ice Splash help clear groups."
       : "Lesson: too many melee enemies reached the wall; group damage or wall upgrades would help next time.";
   }
 
@@ -1377,6 +1976,217 @@ function updateHud() {
   }
 }
 
+function toggleCombatDebug() {
+  state.combatStats.visible = !state.combatStats.visible;
+  updateDebugVisibility();
+}
+
+function toggleManualUpgradeModeFromInput() {
+  toggleManualUpgradeMode();
+}
+
+function updateDebugVisibility() {
+  if (!combatDebug || !debugToggle || !state.combatStats) return;
+  combatDebug.classList.toggle("hidden", !state.combatStats.visible);
+  debugToggle.classList.toggle("active", state.combatStats.visible);
+  debugToggle.setAttribute("aria-expanded", String(state.combatStats.visible));
+  debugToggle.textContent = state.combatStats.visible ? "Hide Debug" : "Debug";
+  refreshCombatDebug();
+}
+
+function refreshCombatDebug() {
+  if (!combatDebug || !state.combatStats?.visible) return;
+  if (!state.combatStats.dirty && !state.waveActive) return;
+
+  const totalBattleDamage = debugTotalBattleDamage();
+  combatDebug.replaceChildren(
+    buildDebugSummary(totalBattleDamage),
+    buildUpgradeHistory(),
+    buildComboStackSummary(),
+    buildDebugSourceList(totalBattleDamage)
+  );
+  state.combatStats.dirty = false;
+}
+
+function buildDebugSummary(totalBattleDamage) {
+  const section = document.createElement("section");
+  section.className = "debug-summary";
+
+  const heading = document.createElement("h2");
+  heading.textContent = "Combat Debug";
+  section.append(heading);
+
+  const timing = document.createElement("span");
+  timing.textContent = `Wave ${formatDebugNumber(state.combatStats.waveDuration)}s active | Battle ${formatDebugNumber(state.combatStats.battleDuration)}s active | Tracked ${formatDebugNumber(totalBattleDamage)} dmg`;
+  section.append(timing);
+
+  const manualMode = document.createElement("span");
+  manualMode.textContent = `Debug Mode: Manual upgrades ${state.manualUpgradeMode ? "ON" : "OFF"}`;
+  section.append(manualMode);
+
+  return section;
+}
+
+function buildUpgradeHistory() {
+  const section = document.createElement("section");
+  section.className = "debug-section debug-upgrades";
+
+  const heading = document.createElement("h2");
+  heading.textContent = "Selected upgrades";
+  section.append(heading);
+
+  if (!state.combatStats.upgradeHistory.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "No temporary upgrades selected yet.";
+    section.append(empty);
+    return section;
+  }
+
+  for (const upgrade of state.combatStats.upgradeHistory) {
+    const line = document.createElement("span");
+    const stackText = upgrade.stack
+      ? upgrade.maxStacks === 1 ? " (One-time)" : ` (Stack ${upgrade.stack})`
+      : "";
+    line.textContent = `Wave ${upgrade.wave}: ${upgrade.title}${stackText}`;
+    section.append(line);
+  }
+
+  return section;
+}
+
+function buildComboStackSummary() {
+  const section = document.createElement("section");
+  section.className = "debug-section debug-upgrades";
+
+  const heading = document.createElement("h2");
+  heading.textContent = "Combo stacks";
+  section.append(heading);
+
+  const comboUpgrades = tempUpgradePool.filter((upgrade) => upgrade.stackId && comboStackCount(upgrade.stackId) > 0);
+  if (!comboUpgrades.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "No combo stacks yet.";
+    section.append(empty);
+    return section;
+  }
+
+  for (const upgrade of comboUpgrades) {
+    const line = document.createElement("span");
+    line.textContent = `${upgrade.title}: ${comboStackCount(upgrade.stackId)} stack${comboStackCount(upgrade.stackId) === 1 ? "" : "s"}`;
+    section.append(line);
+  }
+
+  return section;
+}
+
+function buildDebugSourceList(totalBattleDamage) {
+  const section = document.createElement("section");
+  section.className = "debug-section debug-source-list";
+
+  const heading = document.createElement("h2");
+  heading.textContent = "Sources";
+  section.append(heading);
+
+  for (const source of combatStatSources) {
+    const waveStats = state.combatStats.wave[source];
+    const battleStats = state.combatStats.battle[source];
+    if (!debugSourceHasActivity(waveStats) && !debugSourceHasActivity(battleStats)) continue;
+    section.append(buildDebugSourceRow(source, waveStats, battleStats, totalBattleDamage));
+  }
+
+  if (section.children.length === 1) {
+    const empty = document.createElement("p");
+    empty.textContent = "No tracked combat yet.";
+    section.append(empty);
+  }
+
+  return section;
+}
+
+function buildDebugSourceRow(source, waveStats, battleStats, totalBattleDamage) {
+  const row = document.createElement("div");
+  row.className = "debug-row";
+
+  const name = document.createElement("strong");
+  name.textContent = debugSourceLabel(source);
+  row.append(name);
+
+  const waveDps = state.combatStats.waveDuration > 0 ? waveStats.totalDamage / state.combatStats.waveDuration : 0;
+  const battleDps = state.combatStats.battleDuration > 0 ? battleStats.totalDamage / state.combatStats.battleDuration : 0;
+  const share = totalBattleDamage > 0 ? (battleStats.totalDamage / totalBattleDamage) * 100 : 0;
+
+  const wave = document.createElement("span");
+  wave.textContent = `Wave: ${formatDebugNumber(waveStats.totalDamage)} dmg / ${formatDebugNumber(waveDps)} DPS`;
+  row.append(wave);
+
+  const battle = document.createElement("span");
+  battle.textContent = `Battle: ${formatDebugNumber(battleStats.totalDamage)} dmg / ${formatDebugNumber(battleDps)} DPS / ${formatDebugNumber(share)}%`;
+  row.append(battle);
+
+  const accuracy = document.createElement("span");
+  accuracy.textContent = `Shots ${battleStats.shotsFired} Hit ${battleStats.hits} Miss ${battleStats.misses}`;
+  row.append(accuracy);
+
+  const waveUtility = document.createElement("small");
+  waveUtility.textContent = `Wave: ${debugUtilityText(waveStats)}`;
+  row.append(waveUtility);
+
+  const battleUtility = document.createElement("small");
+  battleUtility.textContent = `Battle: ${debugUtilityText(battleStats)}`;
+  row.append(battleUtility);
+
+  return row;
+}
+
+function debugSourceHasActivity(stats) {
+  return Boolean(stats) && Object.values(stats).some((value) => value > 0);
+}
+
+function debugTotalBattleDamage() {
+  return combatStatSources.reduce((total, source) => total + (state.combatStats.battle[source]?.totalDamage || 0), 0);
+}
+
+function debugSourceLabel(source) {
+  if (heroConfig[source]) {
+    return `${heroConfig[source].name} / ${source}`;
+  }
+  return source === "spikes" ? "Wall Spikes" : "Wall";
+}
+
+function debugUtilityText(stats) {
+  const parts = [];
+  if (stats.directDamage) parts.push(`direct ${formatDebugNumber(stats.directDamage)}`);
+  if (stats.burnDamage) parts.push(`burn ${formatDebugNumber(stats.burnDamage)}`);
+  if (stats.grazeBurnDamage) parts.push(`graze ${formatDebugNumber(stats.grazeBurnDamage)}`);
+  if (stats.poisonDamage) parts.push(`poison ${formatDebugNumber(stats.poisonDamage)}`);
+  if (stats.chainDamage) parts.push(`chain ${formatDebugNumber(stats.chainDamage)}`);
+  if (stats.comboDamage) parts.push(`combo dmg ${formatDebugNumber(stats.comboDamage)}`);
+  if (stats.assistDamage) parts.push(`assist dmg ${formatDebugNumber(stats.assistDamage)}`);
+  if (stats.spikeDamage) parts.push(`spikes ${formatDebugNumber(stats.spikeDamage)}`);
+  if (stats.armorDamage) parts.push(`armor ${formatDebugNumber(stats.armorDamage)}`);
+  if (stats.burnsApplied) parts.push(`burns ${stats.burnsApplied}`);
+  if (stats.grazeBurnsApplied) parts.push(`graze burns ${stats.grazeBurnsApplied}`);
+  if (stats.nearMisses) parts.push(`near misses ${stats.nearMisses}`);
+  if (stats.freezesApplied) parts.push(`freezes ${stats.freezesApplied}`);
+  if (stats.slowsApplied) parts.push(`slows ${stats.slowsApplied}`);
+  if (stats.slowTimeApplied) parts.push(`slow ${formatDebugNumber(stats.slowTimeApplied)}s`);
+  if (stats.poisonApplications) parts.push(`poisons ${stats.poisonApplications}`);
+  if (stats.armorBreaks) parts.push(`breaks ${stats.armorBreaks}`);
+  if (stats.stunsApplied) parts.push(`stuns ${stats.stunsApplied}`);
+  if (stats.pierceHits) parts.push(`pierce ${stats.pierceHits}`);
+  if (stats.spikeHits) parts.push(`spike hits ${stats.spikeHits}`);
+  if (stats.comboTriggers) parts.push(`combo ${stats.comboTriggers}`);
+  if (stats.comboTargets) parts.push(`combo targets ${stats.comboTargets}`);
+  if (stats.assistTriggers) parts.push(`assist ${stats.assistTriggers}`);
+  if (stats.comboControlTime) parts.push(`combo ctrl ${formatDebugNumber(stats.comboControlTime)}s`);
+  if (stats.assistControlTime) parts.push(`assist ctrl ${formatDebugNumber(stats.assistControlTime)}s`);
+  return parts.join(" | ") || "utility none";
+}
+
+function formatDebugNumber(value) {
+  return value >= 10 ? String(Math.round(value)) : value.toFixed(1);
+}
+
 function drawGame(now) {
   const width = state.width;
   const height = state.height;
@@ -1466,7 +2276,7 @@ function drawHeroes() {
     ctx.font = "800 12px system-ui";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(config.label[0], hero.x, hero.y);
+    ctx.fillText(config.shortLabel || config.label[0], hero.x, hero.y);
 
     if (!state.battleActive) continue;
     ctx.beginPath();
@@ -1481,14 +2291,17 @@ function drawFormationLabels() {
   const y = state.wallY + 16;
   const mainHero = state.heroes.find((hero) => hero.role === "main");
   if (!mainHero) return;
+  const config = heroConfig[mainHero.kind];
 
   ctx.fillStyle = "rgba(245, 240, 230, 0.58)";
   ctx.font = "800 9px system-ui";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("PARTY", state.width * 0.2, y);
-  ctx.fillText("MAIN HERO", mainHero.x, y);
   ctx.fillText("PARTY", state.width * 0.8, y);
+  ctx.fillText(config.name.toUpperCase(), mainHero.x, y - 5);
+  ctx.font = "800 7px system-ui";
+  ctx.fillText(`${config.role.toUpperCase()} / ${config.damageType.toUpperCase()}`, mainHero.x, y + 6);
 }
 
 function drawEmptyHeroSlot(hero) {
@@ -1579,7 +2392,7 @@ function drawEnemyTraitBadges(enemy) {
     ctx.font = "800 8px system-ui";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(immunity === "lightning" ? "S" : immunity[0].toUpperCase(), x, y + 0.4);
+    ctx.fillText(heroConfig[immunity]?.shortLabel || immunity[0].toUpperCase(), x, y + 0.4);
   });
 }
 
@@ -1700,7 +2513,9 @@ function gameLoop(now) {
   state.lastTime = now;
   const scaledDt = dt * state.gameSpeed;
   state.gameTime += scaledDt * 1000;
+  addActiveCombatTime(scaledDt);
   updateGame(scaledDt, state.gameTime);
+  refreshCombatDebug();
   drawGame(state.gameTime);
   requestAnimationFrame(gameLoop);
 }
@@ -1749,8 +2564,22 @@ wallButtons.addEventListener("click", (event) => {
   if (!button || button.disabled) return;
   buildWallUpgrade(button.dataset.wallUpgrade);
 });
+debugToggle.addEventListener("click", toggleCombatDebug);
+manualUpgradeToggle.addEventListener("click", toggleManualUpgradeModeFromInput);
+window.addEventListener("keydown", (event) => {
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+  const key = event.key.toLowerCase();
+  if (key === "d") {
+    toggleCombatDebug();
+  }
+  if (key === "u") {
+    toggleManualUpgradeModeFromInput();
+  }
+});
 
 resizeCanvas();
 recalculateWallStats();
 updateHud();
+updateDebugVisibility();
+updateManualUpgradeToggle();
 requestAnimationFrame(gameLoop);
