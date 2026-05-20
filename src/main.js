@@ -3,7 +3,9 @@ import { damageTypeRoster } from './config/damageTypes.js';
 import { enemyConfig } from './config/enemies.js';
 import { createTempUpgradePool } from './config/upgrades.js';
 import { distance, shuffle, smoothStep } from './utils/math.js';
-import { withAlpha } from './utils/colors.js';
+import { addActiveCombatTime as addCombatStatsActiveTime, createCombatStats, recordArmorBreak as recordCombatArmorBreak, recordAssistDamage as recordCombatAssistDamage, recordComboTrigger as recordCombatComboTrigger, recordDamage as recordCombatDamage, recordHit as recordCombatHit, recordMiss as recordCombatMiss, recordNearMiss as recordCombatNearMiss, recordShot as recordCombatShot, recordSpikeDamage as recordCombatSpikeDamage, recordStatus as recordCombatStatus, recordUpgradeChoice as recordCombatUpgradeChoice, resetCombatBattleStats as resetCombatBattleStatsForState, resetCombatWaveStats as resetCombatWaveStatsForState } from './core/combatStats.js';
+import { drawGame } from './render/drawGame.js';
+import { renderCombatDebug } from './ui/debugPanel.js';
 
 const canvas = document.querySelector("#gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -68,60 +70,10 @@ const state = {
   height: 620,
   wallY: 535,
   manualUpgradeMode: false,
-  combatStats: createCombatStats()
+  combatStats: createCombatStats(combatStatSources)
 };
 
 const tempUpgradePool = createTempUpgradePool(state, addComboStack);
-
-function createCombatStats() {
-  return {
-    visible: false,
-    battleDuration: 0,
-    waveDuration: 0,
-    upgradeHistory: [],
-    dirty: true,
-    battle: createCombatStatBucket(),
-    wave: createCombatStatBucket()
-  };
-}
-
-function createCombatStatBucket() {
-  return Object.fromEntries(combatStatSources.map((source) => [source, createSourceStats()]));
-}
-
-function createSourceStats() {
-  return {
-    shotsFired: 0,
-    hits: 0,
-    misses: 0,
-    nearMisses: 0,
-    directDamage: 0,
-    burnDamage: 0,
-    grazeBurnDamage: 0,
-    poisonDamage: 0,
-    chainDamage: 0,
-    spikeDamage: 0,
-    armorDamage: 0,
-    comboDamage: 0,
-    assistDamage: 0,
-    burnsApplied: 0,
-    grazeBurnsApplied: 0,
-    freezesApplied: 0,
-    slowsApplied: 0,
-    slowTimeApplied: 0,
-    poisonApplications: 0,
-    armorBreaks: 0,
-    stunsApplied: 0,
-    pierceHits: 0,
-    spikeHits: 0,
-    comboTriggers: 0,
-    comboTargets: 0,
-    assistTriggers: 0,
-    comboControlTime: 0,
-    assistControlTime: 0,
-    totalDamage: 0
-  };
-}
 
 function freshTempUpgrades() {
   return {
@@ -163,38 +115,22 @@ function comboStackCount(stackId) {
   return state.temp.comboStacks[stackId] || 0;
 }
 
+
 function resetCombatBattleStats(now = state.gameTime) {
-  const visible = state.combatStats?.visible || false;
-  state.combatStats = createCombatStats();
-  state.combatStats.visible = visible;
+  resetCombatBattleStatsForState(state, combatStatSources);
   updateDebugVisibility();
 }
 
 function resetCombatWaveStats(now = state.gameTime) {
-  state.combatStats.wave = createCombatStatBucket();
-  state.combatStats.waveDuration = 0;
-  state.combatStats.dirty = true;
-  refreshCombatDebug();
+  resetCombatWaveStatsForState(state, combatStatSources, refreshCombatDebug);
 }
 
 function addActiveCombatTime(dt) {
-  const stats = state.combatStats;
-  if (!stats || !state.waveActive) return;
-  stats.waveDuration += dt;
-  stats.battleDuration += dt;
-  stats.dirty = true;
+  addCombatStatsActiveTime(state, dt);
 }
 
 function recordUpgradeChoice(waveNumber, upgrade) {
-  if (!state.combatStats) return;
-  state.combatStats.upgradeHistory.push({
-    wave: waveNumber,
-    title: upgrade.title,
-    stack: upgrade.stackId ? comboStackCount(upgrade.stackId) : null,
-    maxStacks: upgrade.maxStacks || null
-  });
-  state.combatStats.dirty = true;
-  refreshCombatDebug();
+  recordCombatUpgradeChoice(state, waveNumber, upgrade, comboStackCount, refreshCombatDebug);
 }
 
 function toggleManualUpgradeMode() {
@@ -212,59 +148,43 @@ function updateManualUpgradeToggle() {
 }
 
 function recordShot(source) {
-  mutateCombatStats(source, (stats) => {
-    stats.shotsFired += 1;
-  });
+  recordCombatShot(state, combatStatSources, source, refreshCombatDebug);
 }
 
 function recordHit(source) {
-  mutateCombatStats(source, (stats) => {
-    stats.hits += 1;
-  });
+  recordCombatHit(state, combatStatSources, source, refreshCombatDebug);
 }
 
 function recordMiss(source) {
-  mutateCombatStats(source, (stats) => {
-    stats.misses += 1;
-  });
+  recordCombatMiss(state, combatStatSources, source, refreshCombatDebug);
 }
 
 function recordNearMiss(source) {
-  mutateCombatStats(source, (stats) => {
-    stats.nearMisses += 1;
-  });
+  recordCombatNearMiss(state, combatStatSources, source, refreshCombatDebug);
 }
 
 function recordDamage(source, amount, category = "directDamage") {
-  if (!Number.isFinite(amount) || amount <= 0) return;
-  mutateCombatStats(source, (stats) => {
-    if (!(category in stats)) stats[category] = 0;
-    stats[category] += amount;
-    stats.totalDamage += amount;
-  });
+  recordCombatDamage(state, combatStatSources, source, amount, category, refreshCombatDebug);
 }
 
 function recordAssistDamage(source, amount) {
-  if (!Number.isFinite(amount) || amount <= 0) return;
-  mutateCombatStats(source, (stats) => {
-    stats.assistDamage += amount;
-  });
+  recordCombatAssistDamage(state, combatStatSources, source, amount, refreshCombatDebug);
 }
 
 function recordStatus(source, statusKind, amount = 1) {
-  mutateCombatStats(source, (stats) => {
-    if (!(statusKind in stats)) stats[statusKind] = 0;
-    stats[statusKind] += amount;
-  });
+  recordCombatStatus(state, combatStatSources, source, statusKind, amount, refreshCombatDebug);
 }
 
 function recordArmorBreak(source) {
-  recordStatus(source, "armorBreaks");
+  recordCombatArmorBreak(state, combatStatSources, source, refreshCombatDebug);
 }
 
 function recordSpikeDamage(amount) {
-  recordDamage("spikes", amount, "spikeDamage");
-  recordStatus("spikes", "spikeHits");
+  recordCombatSpikeDamage(state, combatStatSources, amount, refreshCombatDebug);
+}
+
+function recordComboTrigger(source, assistSource = null) {
+  recordCombatComboTrigger(state, combatStatSources, source, assistSource, refreshCombatDebug);
 }
 
 function applyTrackedDamage(enemy, source, amount, category) {
@@ -277,25 +197,6 @@ function applyTrackedDamage(enemy, source, amount, category) {
 function applyTrackedDirectDamage(enemy, source, amount, now, category = "directDamage") {
   const damage = directDamageAfterArmor(enemy, amount, now);
   return applyTrackedDamage(enemy, source, damage, category);
-}
-
-function recordComboTrigger(source, assistSource = null) {
-  recordStatus(source, "comboTriggers");
-  if (assistSource) recordStatus(assistSource, "assistTriggers");
-}
-
-function mutateCombatStats(source, mutate) {
-  if (!state.combatStats || !source) return;
-  ensureCombatSource(source);
-  mutate(state.combatStats.wave[source]);
-  mutate(state.combatStats.battle[source]);
-  state.combatStats.dirty = true;
-  refreshCombatDebug();
-}
-
-function ensureCombatSource(source) {
-  if (!state.combatStats.wave[source]) state.combatStats.wave[source] = createSourceStats();
-  if (!state.combatStats.battle[source]) state.combatStats.battle[source] = createSourceStats();
 }
 
 function resizeCanvas() {
@@ -1539,493 +1440,14 @@ function updateDebugVisibility() {
 }
 
 function refreshCombatDebug() {
-  if (!combatDebug || !state.combatStats?.visible) return;
-  if (!state.combatStats.dirty && !state.waveActive) return;
-
-  const totalBattleDamage = debugTotalBattleDamage();
-  combatDebug.replaceChildren(
-    buildDebugSummary(totalBattleDamage),
-    buildUpgradeHistory(),
-    buildComboStackSummary(),
-    buildDebugSourceList(totalBattleDamage)
-  );
-  state.combatStats.dirty = false;
-}
-
-function buildDebugSummary(totalBattleDamage) {
-  const section = document.createElement("section");
-  section.className = "debug-summary";
-
-  const heading = document.createElement("h2");
-  heading.textContent = "Combat Debug";
-  section.append(heading);
-
-  const timing = document.createElement("span");
-  timing.textContent = `Wave ${formatDebugNumber(state.combatStats.waveDuration)}s active | Battle ${formatDebugNumber(state.combatStats.battleDuration)}s active | Tracked ${formatDebugNumber(totalBattleDamage)} dmg`;
-  section.append(timing);
-
-  const manualMode = document.createElement("span");
-  manualMode.textContent = `Debug Mode: Manual upgrades ${state.manualUpgradeMode ? "ON" : "OFF"}`;
-  section.append(manualMode);
-
-  return section;
-}
-
-function buildUpgradeHistory() {
-  const section = document.createElement("section");
-  section.className = "debug-section debug-upgrades";
-
-  const heading = document.createElement("h2");
-  heading.textContent = "Selected upgrades";
-  section.append(heading);
-
-  if (!state.combatStats.upgradeHistory.length) {
-    const empty = document.createElement("p");
-    empty.textContent = "No temporary upgrades selected yet.";
-    section.append(empty);
-    return section;
-  }
-
-  for (const upgrade of state.combatStats.upgradeHistory) {
-    const line = document.createElement("span");
-    const stackText = upgrade.stack
-      ? upgrade.maxStacks === 1 ? " (One-time)" : ` (Stack ${upgrade.stack})`
-      : "";
-    line.textContent = `Wave ${upgrade.wave}: ${upgrade.title}${stackText}`;
-    section.append(line);
-  }
-
-  return section;
-}
-
-function buildComboStackSummary() {
-  const section = document.createElement("section");
-  section.className = "debug-section debug-upgrades";
-
-  const heading = document.createElement("h2");
-  heading.textContent = "Combo stacks";
-  section.append(heading);
-
-  const comboUpgrades = tempUpgradePool.filter((upgrade) => upgrade.stackId && comboStackCount(upgrade.stackId) > 0);
-  if (!comboUpgrades.length) {
-    const empty = document.createElement("p");
-    empty.textContent = "No combo stacks yet.";
-    section.append(empty);
-    return section;
-  }
-
-  for (const upgrade of comboUpgrades) {
-    const line = document.createElement("span");
-    line.textContent = `${upgrade.title}: ${comboStackCount(upgrade.stackId)} stack${comboStackCount(upgrade.stackId) === 1 ? "" : "s"}`;
-    section.append(line);
-  }
-
-  return section;
-}
-
-function buildDebugSourceList(totalBattleDamage) {
-  const section = document.createElement("section");
-  section.className = "debug-section debug-source-list";
-
-  const heading = document.createElement("h2");
-  heading.textContent = "Sources";
-  section.append(heading);
-
-  for (const source of combatStatSources) {
-    const waveStats = state.combatStats.wave[source];
-    const battleStats = state.combatStats.battle[source];
-    if (!debugSourceHasActivity(waveStats) && !debugSourceHasActivity(battleStats)) continue;
-    section.append(buildDebugSourceRow(source, waveStats, battleStats, totalBattleDamage));
-  }
-
-  if (section.children.length === 1) {
-    const empty = document.createElement("p");
-    empty.textContent = "No tracked combat yet.";
-    section.append(empty);
-  }
-
-  return section;
-}
-
-function buildDebugSourceRow(source, waveStats, battleStats, totalBattleDamage) {
-  const row = document.createElement("div");
-  row.className = "debug-row";
-
-  const name = document.createElement("strong");
-  name.textContent = debugSourceLabel(source);
-  row.append(name);
-
-  const waveDps = state.combatStats.waveDuration > 0 ? waveStats.totalDamage / state.combatStats.waveDuration : 0;
-  const battleDps = state.combatStats.battleDuration > 0 ? battleStats.totalDamage / state.combatStats.battleDuration : 0;
-  const share = totalBattleDamage > 0 ? (battleStats.totalDamage / totalBattleDamage) * 100 : 0;
-
-  const wave = document.createElement("span");
-  wave.textContent = `Wave: ${formatDebugNumber(waveStats.totalDamage)} dmg / ${formatDebugNumber(waveDps)} DPS`;
-  row.append(wave);
-
-  const battle = document.createElement("span");
-  battle.textContent = `Battle: ${formatDebugNumber(battleStats.totalDamage)} dmg / ${formatDebugNumber(battleDps)} DPS / ${formatDebugNumber(share)}%`;
-  row.append(battle);
-
-  const accuracy = document.createElement("span");
-  accuracy.textContent = `Shots ${battleStats.shotsFired} Hit ${battleStats.hits} Miss ${battleStats.misses}`;
-  row.append(accuracy);
-
-  const waveUtility = document.createElement("small");
-  waveUtility.textContent = `Wave: ${debugUtilityText(waveStats)}`;
-  row.append(waveUtility);
-
-  const battleUtility = document.createElement("small");
-  battleUtility.textContent = `Battle: ${debugUtilityText(battleStats)}`;
-  row.append(battleUtility);
-
-  return row;
-}
-
-function debugSourceHasActivity(stats) {
-  return Boolean(stats) && Object.values(stats).some((value) => value > 0);
-}
-
-function debugTotalBattleDamage() {
-  return combatStatSources.reduce((total, source) => total + (state.combatStats.battle[source]?.totalDamage || 0), 0);
-}
-
-function debugSourceLabel(source) {
-  if (heroConfig[source]) {
-    return `${heroConfig[source].name} / ${source}`;
-  }
-  return source === "spikes" ? "Wall Spikes" : "Wall";
-}
-
-function debugUtilityText(stats) {
-  const parts = [];
-  if (stats.directDamage) parts.push(`direct ${formatDebugNumber(stats.directDamage)}`);
-  if (stats.burnDamage) parts.push(`burn ${formatDebugNumber(stats.burnDamage)}`);
-  if (stats.grazeBurnDamage) parts.push(`graze ${formatDebugNumber(stats.grazeBurnDamage)}`);
-  if (stats.poisonDamage) parts.push(`poison ${formatDebugNumber(stats.poisonDamage)}`);
-  if (stats.chainDamage) parts.push(`chain ${formatDebugNumber(stats.chainDamage)}`);
-  if (stats.comboDamage) parts.push(`combo dmg ${formatDebugNumber(stats.comboDamage)}`);
-  if (stats.assistDamage) parts.push(`assist dmg ${formatDebugNumber(stats.assistDamage)}`);
-  if (stats.spikeDamage) parts.push(`spikes ${formatDebugNumber(stats.spikeDamage)}`);
-  if (stats.armorDamage) parts.push(`armor ${formatDebugNumber(stats.armorDamage)}`);
-  if (stats.burnsApplied) parts.push(`burns ${stats.burnsApplied}`);
-  if (stats.grazeBurnsApplied) parts.push(`graze burns ${stats.grazeBurnsApplied}`);
-  if (stats.nearMisses) parts.push(`near misses ${stats.nearMisses}`);
-  if (stats.freezesApplied) parts.push(`freezes ${stats.freezesApplied}`);
-  if (stats.slowsApplied) parts.push(`slows ${stats.slowsApplied}`);
-  if (stats.slowTimeApplied) parts.push(`slow ${formatDebugNumber(stats.slowTimeApplied)}s`);
-  if (stats.poisonApplications) parts.push(`poisons ${stats.poisonApplications}`);
-  if (stats.armorBreaks) parts.push(`breaks ${stats.armorBreaks}`);
-  if (stats.stunsApplied) parts.push(`stuns ${stats.stunsApplied}`);
-  if (stats.pierceHits) parts.push(`pierce ${stats.pierceHits}`);
-  if (stats.spikeHits) parts.push(`spike hits ${stats.spikeHits}`);
-  if (stats.comboTriggers) parts.push(`combo ${stats.comboTriggers}`);
-  if (stats.comboTargets) parts.push(`combo targets ${stats.comboTargets}`);
-  if (stats.assistTriggers) parts.push(`assist ${stats.assistTriggers}`);
-  if (stats.comboControlTime) parts.push(`combo ctrl ${formatDebugNumber(stats.comboControlTime)}s`);
-  if (stats.assistControlTime) parts.push(`assist ctrl ${formatDebugNumber(stats.assistControlTime)}s`);
-  return parts.join(" | ") || "utility none";
-}
-
-function formatDebugNumber(value) {
-  return value >= 10 ? String(Math.round(value)) : value.toFixed(1);
-}
-
-function drawGame(now) {
-  const width = state.width;
-  const height = state.height;
-  ctx.clearRect(0, 0, width, height);
-  drawArena(width, height);
-  drawWall(width);
-  drawHeroes();
-  drawEnemies(now);
-  drawProjectiles();
-  drawBeams();
-  drawHits();
-}
-
-function drawArena(width, height) {
-  ctx.fillStyle = "#1e2822";
-  ctx.fillRect(0, 0, width, height);
-
-  ctx.strokeStyle = "rgba(245, 240, 230, 0.05)";
-  ctx.lineWidth = 1;
-  for (let x = width / 6; x < width; x += width / 6) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, state.wallY);
-    ctx.stroke();
-  }
-
-  const gradient = ctx.createLinearGradient(0, 0, 0, state.wallY);
-  gradient.addColorStop(0, "rgba(112, 214, 255, 0.08)");
-  gradient.addColorStop(1, "rgba(249, 87, 56, 0.05)");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, state.wallY);
-}
-
-function drawWall(width) {
-  ctx.fillStyle = "#514738";
-  ctx.fillRect(0, state.wallY, width, 18);
-  ctx.fillStyle = "#806b4e";
-  for (let x = 0; x < width; x += 42) {
-    ctx.fillRect(x + 3, state.wallY - 13, 28, 18);
-  }
-
-  if (state.wallLevels.spikes > 0) {
-    ctx.fillStyle = "#c6d1bd";
-    for (let x = 6; x < width; x += 24) {
-      ctx.beginPath();
-      ctx.moveTo(x, state.wallY - 16);
-      ctx.lineTo(x + 9, state.wallY);
-      ctx.lineTo(x - 9, state.wallY);
-      ctx.closePath();
-      ctx.fill();
-    }
-  }
-
-  ctx.fillStyle = "rgba(13, 17, 14, 0.72)";
-  ctx.fillRect(0, state.wallY + 18, width, state.height - state.wallY - 18);
-}
-
-function drawHeroes() {
-  drawFormationLabels();
-
-  for (const hero of state.heroes) {
-    if (hero.inactive) {
-      drawEmptyHeroSlot(hero);
-      continue;
-    }
-
-    const config = heroConfig[hero.kind];
-    const isMainHero = hero.role === "main";
-
-    ctx.beginPath();
-    ctx.arc(hero.x, hero.y, isMainHero ? 22 : 18, 0, Math.PI * 2);
-    ctx.fillStyle = config.color;
-    ctx.fill();
-    ctx.strokeStyle = "#101511";
-    ctx.lineWidth = isMainHero ? 5 : 3;
-    ctx.stroke();
-
-    if (isMainHero) {
-      ctx.beginPath();
-      ctx.arc(hero.x, hero.y, 28, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(245, 240, 230, 0.45)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = "#101511";
-    ctx.font = "800 12px system-ui";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(config.shortLabel || config.label[0], hero.x, hero.y);
-
-    if (!state.battleActive) continue;
-    ctx.beginPath();
-    ctx.arc(hero.x, hero.y, config.range, -Math.PI * 0.88, -Math.PI * 0.12);
-    ctx.strokeStyle = "rgba(245, 240, 230, 0.035)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-}
-
-function drawFormationLabels() {
-  const y = state.wallY + 16;
-  const mainHero = state.heroes.find((hero) => hero.role === "main");
-  if (!mainHero) return;
-  const config = heroConfig[mainHero.kind];
-
-  ctx.fillStyle = "rgba(245, 240, 230, 0.58)";
-  ctx.font = "800 9px system-ui";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("PARTY", state.width * 0.2, y);
-  ctx.fillText("PARTY", state.width * 0.8, y);
-  ctx.fillText(config.name.toUpperCase(), mainHero.x, y - 5);
-  ctx.font = "800 7px system-ui";
-  ctx.fillText(`${config.role.toUpperCase()} / ${config.damageType.toUpperCase()}`, mainHero.x, y + 6);
-}
-
-function drawEmptyHeroSlot(hero) {
-  ctx.beginPath();
-  ctx.arc(hero.x, hero.y, 17, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(245, 240, 230, 0.08)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(245, 240, 230, 0.24)";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([4, 4]);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.fillStyle = "rgba(245, 240, 230, 0.5)";
-  ctx.font = "800 12px system-ui";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("+", hero.x, hero.y - 1);
-}
-
-function drawEnemies(now) {
-  for (const enemy of state.enemies) {
-    const burnUntil = enemy.burnUntil ?? 0;
-    const slowedUntil = enemy.slowedUntil ?? 0;
-    const immunities = enemyImmunities(enemy);
-    const marker = enemy.marker || enemy.kind[0].toUpperCase();
-    const outlineWidth = enemy.bounce ? 5 : immunities.length ? 3 : 2;
-    const drawRadius = enemy.bounce ? enemy.radius + 2 : enemy.radius;
-
-    ctx.beginPath();
-    ctx.arc(enemy.x, enemy.y, drawRadius, 0, Math.PI * 2);
-    ctx.fillStyle = enemy.color;
-    ctx.fill();
-    ctx.strokeStyle = immunities.length ? firstImmunityColor(enemy) : "#101511";
-    ctx.lineWidth = outlineWidth;
-    ctx.stroke();
-
-    ctx.fillStyle = "#101511";
-    ctx.font = "800 10px system-ui";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(marker, enemy.x, enemy.y);
-
-    if (enemy.pattern === "zigzag") {
-      drawZigzagMark(enemy);
-    }
-
-    drawArmorMarker(enemy, now);
-
-    if (enemy.ranged) {
-      ctx.beginPath();
-      ctx.moveTo(enemy.x - 6, enemy.y - 12);
-      ctx.lineTo(enemy.x + 9, enemy.y);
-      ctx.lineTo(enemy.x - 6, enemy.y + 12);
-      ctx.strokeStyle = "#101511";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    const hpWidth = 28;
-    const hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
-    ctx.fillStyle = "rgba(10, 12, 10, 0.8)";
-    ctx.fillRect(enemy.x - hpWidth / 2, enemy.y - enemy.radius - 10, hpWidth, 4);
-    ctx.fillStyle = "#7dd87d";
-    ctx.fillRect(enemy.x - hpWidth / 2, enemy.y - enemy.radius - 10, hpWidth * hpRatio, 4);
-
-    if (burnUntil > now) drawStatusDot(enemy.x - 7, enemy.y + enemy.radius + 7, heroConfig.fire.color);
-    if (slowedUntil > now) drawStatusDot(enemy.x + 7, enemy.y + enemy.radius + 7, heroConfig.ice.color);
-    if ((enemy.poisonUntil ?? 0) > now) drawStatusDot(enemy.x, enemy.y + enemy.radius + 15, heroConfig.poison.color);
-    if ((enemy.armourBrokenUntil ?? 0) > now) drawStatusDot(enemy.x - 11, enemy.y + enemy.radius + 15, heroConfig.earth.color);
-    if ((enemy.stunnedUntil ?? 0) > now) drawStatusDot(enemy.x + 11, enemy.y + enemy.radius + 15, heroConfig.earth.color);
-    drawEnemyTraitBadges(enemy);
-  }
-}
-
-function drawEnemyTraitBadges(enemy) {
-  const immunities = enemyImmunities(enemy);
-  const startX = enemy.x - (immunities.length - 1) * 6;
-
-  immunities.forEach((immunity, index) => {
-    const x = startX + index * 12;
-    const y = enemy.y - enemy.radius - 18;
-    ctx.beginPath();
-    ctx.arc(x, y, 6, 0, Math.PI * 2);
-    ctx.fillStyle = heroConfig[immunity]?.color || "#f5f0e6";
-    ctx.fill();
-    ctx.fillStyle = "#101511";
-    ctx.font = "800 8px system-ui";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(heroConfig[immunity]?.shortLabel || immunity[0].toUpperCase(), x, y + 0.4);
+  renderCombatDebug({
+    container: combatDebug,
+    state,
+    tempUpgradePool,
+    combatStatSources,
+    heroConfig,
+    comboStackCount
   });
-}
-
-function drawArmorMarker(enemy, now) {
-  if ((enemy.maxArmor ?? 0) <= 0) return;
-
-  const broken = !hasActiveArmor(enemy, now);
-  const x = enemy.x + enemy.radius + 8;
-  const y = enemy.y - enemy.radius - 4;
-
-  ctx.beginPath();
-  ctx.rect(x - 5, y - 5, 10, 10);
-  ctx.fillStyle = broken ? "#c6d1bd" : "#9ea7a0";
-  ctx.fill();
-  ctx.strokeStyle = "#101511";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = "#101511";
-  ctx.font = "800 7px system-ui";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(broken ? "X" : "A", x, y + 0.4);
-}
-
-function drawZigzagMark(enemy) {
-  const phase = enemy.zigzagPhase || "straight";
-  const reach = phase === "weave" ? 16 : phase === "prep" ? 11 : 8;
-  const lift = phase === "prep" ? 10 : 7;
-
-  ctx.beginPath();
-  ctx.moveTo(enemy.x - reach, enemy.y - 2);
-  ctx.lineTo(enemy.x - 5, enemy.y - lift);
-  ctx.lineTo(enemy.x + 5, enemy.y + lift);
-  ctx.lineTo(enemy.x + reach, enemy.y + 2);
-  ctx.strokeStyle = "#101511";
-  ctx.lineWidth = phase === "weave" ? 3 : 2;
-  ctx.stroke();
-
-  if (phase === "prep") {
-    ctx.beginPath();
-    ctx.moveTo(enemy.x, enemy.y - enemy.radius - 3);
-    ctx.lineTo(enemy.x + enemy.zigzagSide * 10, enemy.y - enemy.radius - 8);
-    ctx.strokeStyle = "#f5f0e6";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-}
-
-function firstImmunityColor(enemy) {
-  const immunity = enemyImmunities(enemy)[0];
-  return heroConfig[immunity]?.color || "#f5f0e6";
-}
-
-function drawStatusDot(x, y, color) {
-  ctx.beginPath();
-  ctx.arc(x, y, 3, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-}
-
-function drawProjectiles() {
-  for (const projectile of state.projectiles) {
-    ctx.beginPath();
-    ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
-    ctx.fillStyle = projectile.color;
-    ctx.fill();
-  }
-}
-
-function drawBeams() {
-  for (const beam of state.beams) {
-    ctx.beginPath();
-    ctx.moveTo(beam.from.x, beam.from.y);
-    ctx.lineTo(beam.to.x, beam.to.y);
-    ctx.strokeStyle = withAlpha(beam.color, Math.max(0, beam.life / beam.maxLife) * (beam.alpha ?? 1));
-    ctx.lineWidth = beam.width ?? 4;
-    ctx.stroke();
-  }
-}
-
-function drawHits() {
-  for (const hit of state.hits) {
-    ctx.beginPath();
-    ctx.arc(hit.x, hit.y, hit.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = withAlpha(hit.color, Math.max(0, hit.life / hit.maxLife));
-    ctx.lineWidth = 4;
-    ctx.stroke();
-  }
 }
 
 function makeBeam(from, to, color, life, width = 4, alpha = 1) {
@@ -2060,7 +1482,7 @@ function gameLoop(now) {
   addActiveCombatTime(scaledDt);
   updateGame(scaledDt, state.gameTime);
   refreshCombatDebug();
-  drawGame(state.gameTime);
+  drawGame(ctx, state, heroConfig, state.gameTime, { enemyImmunities, hasActiveArmor });
   requestAnimationFrame(gameLoop);
 }
 
@@ -2070,6 +1492,11 @@ function enemyImmunities(enemy) {
 
 function hasImmunity(enemy, kind) {
   return enemyImmunities(enemy).includes(kind);
+}
+
+function firstImmunityColor(enemy) {
+  const immunity = enemyImmunities(enemy)[0];
+  return heroConfig[immunity]?.color || "#f5f0e6";
 }
 
 window.addEventListener("resize", resizeCanvas);
