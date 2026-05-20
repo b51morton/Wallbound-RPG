@@ -1,0 +1,155 @@
+export const heroConfig = {
+  archer: {
+    kind: "archer",
+    name: "Jeff",
+    damageType: "Physical",
+    role: "Main Hero",
+    label: "Jeff",
+    shortLabel: "J",
+    description: "Reliable neutral arrow damage.",
+    implemented: true,
+    color: "#d9c7a3",
+    cooldown: 0.82,
+    range: 410,
+    damage: 8,
+    projectileSpeed: 620
+  },
+  fire: {
+    kind: "fire",
+    name: "Ashka",
+    damageType: "Fire",
+    role: "Party Member",
+    label: "Ashka",
+    shortLabel: "F",
+    description: "Burns enemies and can graze evasive targets.",
+    implemented: true,
+    color: "#f95738",
+    cooldown: 0.82,
+    range: 430,
+    damage: 14,
+    dotDamage: 18,
+    dotTime: 2.5,
+    projectileSpeed: 520
+  },
+  ice: {
+    kind: "ice",
+    name: "Nyra",
+    damageType: "Ice",
+    role: "Party Member",
+    label: "Nyra",
+    shortLabel: "I",
+    description: "Slows, freezes, and manages pressure.",
+    implemented: true,
+    color: "#70d6ff",
+    cooldown: 1.05,
+    range: 390,
+    damage: 9,
+    freezeTime: 0.6,
+    slowTime: 1.4,
+    projectileSpeed: 470
+  },
+  storm: {
+    kind: "storm",
+    name: "Raika",
+    damageType: "Storm",
+    role: "Party Member",
+    label: "Raika",
+    shortLabel: "S",
+    description: "Lightning burst, chain damage, and pierce effects.",
+    implemented: true,
+    color: "#ffd166",
+    cooldown: 0.9,
+    range: 420,
+    damage: 12,
+    projectileSpeed: 650
+  },
+  poison: {
+    kind: "poison",
+    name: "Vessa",
+    damageType: "Poison",
+    role: "Party Member",
+    label: "Vessa",
+    shortLabel: "P",
+    description: "Damage over time, weakening, and attrition pressure.",
+    implemented: true,
+    color: "#8bd450",
+    cooldown: 0.98,
+    range: 400,
+    damage: 6,
+    poisonDamage: 24,
+    poisonTime: 4,
+    projectileSpeed: 470
+  },
+  earth: {
+    kind: "earth",
+    name: "Torren",
+    damageType: "Earth",
+    role: "Party Member",
+    label: "Torren",
+    shortLabel: "E",
+    description: "Breaks armour with heavy impact.",
+    implemented: true,
+    color: "#b58b5b",
+    cooldown: 1.2,
+    range: 360,
+    damage: 16,
+    stunTime: 0.45,
+    armourBreakTime: 2.8,
+    projectileSpeed: 430
+  },
+  holy: {
+    kind: "holy",
+    name: "Solen",
+    damageType: "Holy",
+    role: "Party Member",
+    label: "Solen",
+    shortLabel: "H",
+    description: "Future defensive support, cleansing, and anti-corruption party member.",
+    implemented: false
+  },
+  shadow: {
+    kind: "shadow",
+    name: "Morvane",
+    damageType: "Shadow",
+    role: "Party Member",
+    label: "Morvane",
+    shortLabel: "M",
+    description: "Future curses, life drain, fear, and enemy debuffs.",
+    implemented: false
+  },
+  arcane: {
+    kind: "arcane",
+    name: "Elowen",
+    damageType: "Arcane",
+    role: "Party Member",
+    label: "Elowen",
+    shortLabel: "A",
+    description: "Future raw magic, resistance piercing, and unstable blasts.",
+    implemented: false
+  },
+  wind: {
+    kind: "wind",
+    name: "Kael",
+    damageType: "Wind",
+    role: "Party Member",
+    label: "Kael",
+    shortLabel: "W",
+    description: "Future knockback, speed manipulation, and pushback.",
+    implemented: false
+  },
+  blood: {
+    kind: "blood",
+    name: "Riven",
+    damageType: "Blood",
+    role: "Party Member",
+    label: "Riven",
+    shortLabel: "B",
+    description: "Future bleed, lifesteal, executes, and wounded-enemy damage.",
+    implemented: false
+  }
+};
+
+export const partyRosterKinds = ["fire", "ice", "storm", "poison", "earth", "holy", "shadow", "arcane", "wind", "blood"];
+export const selectablePartyKinds = partyRosterKinds.filter((kind) => heroConfig[kind].implemented);
+export const trainableHeroKinds = selectablePartyKinds;
+export const combatStatSources = ["archer", "fire", "ice", "storm", "poison", "earth", "spikes", "wall"];
